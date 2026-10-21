@@ -48,3 +48,29 @@ necesitáramos esa comprensión, evaluaríamos embeddings.
 - "pan" puede ser pan o panela. Subimos el margen de 0.1 a 0.3 para que en ese
   caso pregunte en vez de escoger en silencio, porque aquí se maneja dinero.
 - Los umbrales se volverán a ajustar con los casos de la carpeta `eval/`.
+
+
+
+
+## 2. Guardado determinista
+
+**Decisión:** la IA nunca escribe en la base de datos. Solo propone; el tendero
+confirma y `app/transacciones.py` guarda tras validar las reglas en código.
+
+**Reglas que rechazan un movimiento** (`app/validaciones.py`):
+- fiado o abono sin cliente;
+- abono con productos;
+- monto vacío, cero o negativo (no se calcula por la IA: se informa la suma de
+  los productos y decide el tendero);
+- productos que no suman el monto escrito;
+- cliente o producto inexistente.
+
+**Garantías:**
+- Todo se guarda en una sola transacción: o entra completo o no entra nada.
+- Los importes usan `Decimal`, no `float`, para evitar errores de redondeo.
+- El historial es inmutable en la BD (triggers): las correcciones son
+  transacciones nuevas.
+- El saldo no se almacena: se calcula en la vista `saldos` (fiados menos abonos).
+
+**Evidencia:** `python -m pruebas.test_guardado` (rechaza la suma mal hecha de
+Luz y la anotación sin total de Rosita).

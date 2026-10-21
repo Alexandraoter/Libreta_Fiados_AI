@@ -6,7 +6,7 @@ decida el tendero; el sistema no adivina."""
 from app.db import get_conn
 
 UMBRAL = 0.4              # puntaje mínimo (0 a 1) para considerar un candidato
-DIFERENCIA_AMBIGUA = 0.1  # si el 1.º y el 2.º se parecen menos que esto, es ambiguo
+DIFERENCIA_AMBIGUA = 0.3  # si el 1.º y el 2.º se parecen menos que esto, es ambiguo
 
 
 def buscar_cliente(nombre: str, limite: int = 5, umbral: float = UMBRAL) -> list[dict]:

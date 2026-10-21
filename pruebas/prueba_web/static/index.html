@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Libreta de Fiados Inteligente</title>
+    <style>
+        body {
+            font-family: system-ui, sans-serif;
+            max-width: 720px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+            color: #222;
+        }
+
+        h1 {
+            font-size: 1.4rem;
+        }
+
+        button {
+            padding: .6rem 1.2rem;
+            font-size: 1rem;
+            cursor: pointer;
+        }
+
+        button:disabled {
+            opacity: .5;
+            cursor: not-allowed;
+        }
+
+        #preview {
+            max-width: 100%;
+            max-height: 220px;
+            margin: 1rem 0;
+            display: none;
+            border-radius: 8px;
+        }
+
+        .mov {
+            border: 1px solid #ccc;
+            border-left: 6px solid #2e9e4f;
+            border-radius: 8px;
+            padding: .8rem 1rem;
+            margin: .8rem 0;
+        }
+
+        .mov.revisar {
+            border-left-color: #d98a00;
+            background: #fff8e8;
+        }
+
+        .cab {
+            font-style: italic;
+            color: #555;
+            display: block;
+            margin-bottom: .5rem;
+        }
+
+        .fila {
+            display: flex;
+            flex-wrap: wrap;
+            gap: .5rem;
+            align-items: center;
+            margin: .4rem 0;
+        }
+
+        .fila label {
+            font-size: .85rem;
+            color: #555;
+        }
+
+        select,
+        input[type=number] {
+            padding: .3rem;
+            font-size: .95rem;
+        }
+
+        input[type=number] {
+            width: 6.5rem;
+        }
+
+        .item {
+            background: #fafafa;
+            border: 1px solid #e3e3e3;
+            border-radius: 6px;
+            padding: .4rem .6rem;
+        }
+
+        .suma {
+            font-size: .9rem;
+            color: #555;
+        }
+
+        .suma.mal {
+            color: #a11;
+            font-weight: 600;
+        }
+
+        .aviso {
+            color: #a65f00;
+            margin: .3rem 0 0 0;
+            font-size: .9rem;
+        }
+
+        .error {
+            background: #fdecec;
+            color: #a11;
+            padding: .8rem 1rem;
+            border-radius: 8px;
+            margin-top: 1rem;
+        }
+
+        .error ul {
+            margin: .4rem 0 0 1.2rem;
+            padding: 0;
+        }
+
+        .ok {
+            background: #eaf7ee;
+            color: #176b34;
+            padding: .8rem 1rem;
+            border-radius: 8px;
+            margin-top: 1rem;
+        }
+
+        .resumen {
+            font-weight: 600;
+            margin-top: 1rem;
+        }
+
+        #acciones {
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid #ddd;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Libreta de Fiados Inteligente</h1>
+    <p>Sube una foto de la hoja, revisa lo que entendió la IA y confirma.</p>
+
+    <input type="file" id="archivo" accept="image/jpeg,image/png">
+    <img id="preview" alt="Vista previa de la foto">
+    <div><button id="enviar" disabled>Leer hoja</button></div>
+
+    <div id="estado"></div>
+    <div id="resultado"></div>
+
+    <script>
+        const archivo = document.getElementById("archivo");
+        const preview = document.getElementById("preview");
+        const enviar = document.getElementById("enviar");
+        const estado = document.getElementById("estado");
+        const resultado = document.getElementById("resultado");
+
+        let catalogo = null;
+        let filas = [];
+
+        function crear(tag, clase, texto) {
+            const el = document.createElement(tag);
+            if (clase) el.className = clase;
+            if (texto !== undefined) el.textContent = texto;
+            return el;
+        }
+
+        function etiquetado(texto, control) {
+            const l = crear("label", "", texto + " ");
+            l.appendChild(control);
+            return l;
+        }
+
+        function numero(valor) {
+            const i = document.createElement("input");
+            i.type = "number"; i.step = "any"; i.min = "0";
+            i.value = valor ?? "";
+            return i;
+        }
+
+        function selectorSimple(opciones, valor) {
+            const s = document.createElement("select");
+            opciones.forEach((o) => s.appendChild(new Option(o, o)));
+            s.value = valor;
+            return s;
+        }
+
+        // Sugeridos primero, luego todos. Si no hay elegido, queda en "elige".
+        function selector(todos, sugeridos, elegidoId, vacio) {
+            const s = document.createElement("select");
+            s.appendChild(new Option(vacio, ""));
+            if (sugeridos.length) {
+                const g = document.createElement("optgroup");
+                g.label = "Sugeridos";
+                sugeridos.forEach((o) => g.appendChild(new Option(o.nombre, o.id)));
+                s.appendChild(g);
+            }
+            const g2 = document.createElement("optgroup");
+            g2.label = "Todos";
+            todos.forEach((o) => g2.appendChild(new Option(o.nombre, o.id)));
+            s.appendChild(g2);
+            s.value = elegidoId ?? "";
+            return s;
+        }
+
+        function mostrarError(msg) { estado.replaceChildren(crear("div", "error", msg)); }
+
+        async function cargarCatalogo() {
+            try {
+                const r = await fetch("/api/catalogo");
+                return r.ok ? await r.json() : null;
+            } catch (e) { return null; }
+        }
+
+        function precioRef(productoId) {
+            const p = catalogo.productos.find((x) => String(x.id) === String(productoId));
+            return p ? p.precio_ref : "";
+        }
+
+        function tarjeta(m) {
+            const f = { m, items: [] };
+            const card = crear("div", "mov" + (m.advertencias.length ? " revisar" : ""));
+
+            const cab = crear("label", "cab");
+            f.incluir = document.createElement("input");
+            f.incluir.type = "checkbox"; f.incluir.checked = true;
+            cab.append(f.incluir, ` "${m.texto_original}"`);
+            card.appendChild(cab);
+
+            const rc = m.cliente_resuelto;
+            f.tipo = selectorSimple(["fiado", "abono", "venta"], m.tipo);
+            f.cliente = selector(
+                catalogo.clientes,
+                rc ? rc.candidatos : [],
+                rc && rc.estado === "encontrado" ? rc.elegido.id : "",
+                "- sin cliente / elegir -"
+            );
+            f.monto = numero(m.monto);
+
+            const filaTop = crear("div", "fila");
+            filaTop.append(
+                etiquetado("Tipo", f.tipo),
+                etiquetado("Cliente", f.cliente),
+                etiquetado("Monto $", f.monto)
+            );
+            card.appendChild(filaTop);
+
+            const suma = crear("div", "suma");
+
+            m.items.forEach((it) => {
+                const pr = it.producto_resuelto;
+                const fi = {};
+                fi.producto = selector(
+                    catalogo.productos,
+                    pr ? pr.candidatos : [],
+                    pr && pr.estado === "encontrado" ? pr.elegido.id : "",
+                    "- elegir producto -"
+                );
+                fi.cantidad = numero(it.cantidad);
+                fi.precio = numero(
+                    it.precio_unitario ??
+                    (pr && pr.estado === "encontrado" ? precioRef(pr.elegido.id) : "")
+                );
+                fi.producto.addEventListener("change", () => {
+                    if (fi.precio.value === "") fi.precio.value = precioRef(fi.producto.value);
+                    actualizar();
+                });
+                const fila = crear("div", "fila item");
+                fila.append(
+                    crear("span", "", `"${it.producto}"`),
+                    fi.producto,
+                    etiquetado("Cant.", fi.cantidad),
+                    etiquetado("Precio", fi.precio)
+                );
+                card.appendChild(fila);
+                f.items.push(fi);
+            });
+
+            function actualizar() {
+                if (!f.items.length) { suma.textContent = ""; return; }
+                const total = f.items.reduce((a, i) => a + (Number(i.cantidad.value) || 0) * (Number(i.precio.value) || 0), 0);
+                const monto = f.monto.value === "" ? null : Number(f.monto.value);
+                suma.textContent = "Los productos suman $" + total.toLocaleString("es-CO");
+                suma.className = "suma" + (monto !== null && monto !== total ? " mal" : "");
+                if (monto !== null && monto !== total) suma.textContent += " (no coincide con el monto)";
+            }
+            [f.monto, ...f.items.flatMap((i) => [i.cantidad, i.precio])].forEach((c) => c.addEventListener("input", actualizar));
+            card.appendChild(suma);
+            actualizar();
+
+            m.advertencias.forEach((a) => card.appendChild(crear("p", "aviso", "⚠ " + a)));
+            resultado.appendChild(card);
+            return f;
+        }
+
+        function mostrarHoja(hoja) {
+            resultado.replaceChildren();
+            filas = [];
+            if (hoja.bd_disponible === false || !catalogo) {
+                resultado.appendChild(crear("div", "error", "No se pudo consultar la base de datos. Levanta Docker y revisa DATABASE_URL."));
+                return;
+            }
+            resultado.appendChild(crear("div", "resumen", `${hoja.movimientos.length} movimientos leídos. Revisa, corrige y confirma.`));
+            hoja.movimientos.forEach((m) => filas.push(tarjeta(m)));
+
+            const acciones = crear("div", "");
+            acciones.id = "acciones";
+            const prueba = document.createElement("input");
+            prueba.type = "checkbox"; prueba.checked = true; prueba.id = "prueba";
+            const lbl = crear("label", "", " Modo prueba (valida pero NO guarda en la BD)");
+            lbl.prepend(prueba);
+            const boton = crear("button", "", "Confirmar");
+            const salida = crear("div", "");
+            acciones.append(lbl, crear("p", ""), boton, salida);
+            resultado.appendChild(acciones);
+
+            boton.addEventListener("click", () => confirmar(prueba.checked, boton, salida));
+        }
+
+        function recolectar() {
+            const movs = [];
+            for (const f of filas) {
+                if (!f.incluir.checked) continue;
+                const texto = f.m.texto_original;
+                const items = [];
+                for (const i of f.items) {
+                    if (!i.producto.value) return { error: `Falta elegir el producto en: "${texto}"` };
+                    if (i.precio.value === "" || i.cantidad.value === "") return { error: `Falta cantidad o precio en: "${texto}"` };
+                    items.push({
+                        producto_id: Number(i.producto.value),
+                        cantidad: Number(i.cantidad.value),
+                        precio_unitario: Number(i.precio.value),
+                    });
+                }
+                movs.push({
+                    cliente_id: f.cliente.value ? Number(f.cliente.value) : null,
+                    tipo: f.tipo.value,
+                    monto: f.monto.value === "" ? null : Number(f.monto.value),
+                    items,
+                    texto_original: texto,
+                });
+            }
+            return { movs };
+        }
+
+        async function confirmar(simular, boton, salida) {
+            salida.replaceChildren();
+            const r = recolectar();
+            if (r.error) { salida.appendChild(crear("div", "error", r.error)); return; }
+            if (!r.movs.length) { salida.appendChild(crear("div", "error", "No hay movimientos marcados.")); return; }
+            if (!simular && !confirm("Esto guarda de verdad en la base de datos y NO se puede deshacer. ¿Continuar?")) return;
+
+            boton.disabled = true;
+            try {
+                const res = await fetch("/api/confirmar", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ movimientos: r.movs, archivo: archivo.files[0]?.name ?? null, simular }),
+                });
+                const cuerpo = await res.json();
+
+                if (!res.ok) {
+                    const caja = crear("div", "error", "No se guardó nada. Corrige esto:");
+                    const ul = crear("ul", "");
+                    const errores = cuerpo.detail && cuerpo.detail.errores;
+                    if (errores) errores.forEach((e) => ul.appendChild(crear("li", "", e)));
+                    else ul.appendChild(crear("li", "", typeof cuerpo.detail === "string" ? cuerpo.detail : "Hay datos incompletos o inválidos."));
+                    caja.appendChild(ul);
+                    salida.appendChild(caja);
+                    boton.disabled = false;
+                    return;
+                }
+
+                const titulo = cuerpo.guardado
+                    ? "Guardado en la base de datos."
+                    : "Prueba exitosa: todo es válido (no se guardó nada).";
+                const caja = crear("div", "ok", titulo);
+                const ul = crear("ul", "");
+                cuerpo.resultados.forEach((x, i) => {
+                    const saldo = x.saldo !== null ? ` · saldo del cliente: $${Number(x.saldo).toLocaleString("es-CO")}` : "";
+                    ul.appendChild(crear("li", "", `Movimiento ${i + 1}: transacción ${x.transaccion_id}${saldo}`));
+                });
+                caja.appendChild(ul);
+                salida.appendChild(caja);
+                // Si se guardó de verdad, no se permite guardar dos veces
+                boton.disabled = cuerpo.guardado;
+            } catch (e) {
+                salida.appendChild(crear("div", "error", "No se pudo conectar con el servidor."));
+                boton.disabled = false;
+            }
+        }
+
+        archivo.addEventListener("change", () => {
+            const f = archivo.files[0];
+            if (!f) return;
+            preview.src = URL.createObjectURL(f);
+            preview.style.display = "block";
+            enviar.disabled = false;
+            resultado.replaceChildren();
+            estado.replaceChildren();
+        });
+
+        enviar.addEventListener("click", async () => {
+            const f = archivo.files[0];
+            if (!f) return;
+            enviar.disabled = true;
+            resultado.replaceChildren();
+            estado.replaceChildren(crear("p", "", "Leyendo la hoja con IA... puede tardar unos segundos."));
+
+            const datos = new FormData();
+            datos.append("foto", f);
+            try {
+                const [res, cat] = await Promise.all([
+                    fetch("/api/extraer", { method: "POST", body: datos }),
+                    cargarCatalogo(),
+                ]);
+                catalogo = cat;
+                const cuerpo = await res.json();
+                if (!res.ok) {
+                    mostrarError(typeof cuerpo.detail === "string" ? cuerpo.detail : "Error al procesar la foto.");
+                } else {
+                    estado.replaceChildren();
+                    mostrarHoja(cuerpo);
+                }
+            } catch (e) {
+                mostrarError("No se pudo conectar con el servidor.");
+            } finally {
+                enviar.disabled = false;
+            }
+        });
+    </script>
+</body>
+
+</html>

@@ -11,12 +11,13 @@ from app.herramientas import resolver_cliente, resolver_producto
 from app.modelos import MovimientoConfirmado
 from app.validaciones import MovimientoInvalido
 
-from .extractor import extraer_texto
+from .extractor import ErrorIA, extraer_texto
 from .schemas import validar_hoja
 
 app = FastAPI(title="Libreta de Fiados Inteligente (prueba)")
 
 TIPOS_PERMITIDOS = {"image/jpeg", "image/png"}
+MAX_BYTES = 8 * 1024 * 1024  # tamaño máximo de la foto: 8 MB
 
 
 def _aviso_resolucion(etiqueta: str, texto: str, r: dict) -> str | None:
@@ -59,10 +60,12 @@ def extraer(foto: UploadFile = File(...)):
     img = foto.file.read()
     if not img:
         raise HTTPException(status_code=400, detail="El archivo esta vacio.")
+    if len(img) > MAX_BYTES:
+        raise HTTPException(status_code=413, detail="La imagen pesa más de 8 MB. Reduce su tamaño.")
     try:
         texto = extraer_texto(img, foto.content_type)
-    except RuntimeError as e:
-        raise HTTPException(status_code=502, detail=str(e))
+    except ErrorIA as e:
+        raise HTTPException(status_code=e.estado_http, detail=str(e))
     try:
         hoja = validar_hoja(texto)
     except ValidationError:

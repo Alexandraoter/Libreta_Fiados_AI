@@ -38,9 +38,9 @@ def _guardar(conn, m: MovimientoConfirmado, importacion_id: Optional[int]) -> di
         raise MovimientoInvalido(errores)
 
     fila = conn.execute(
-        """INSERT INTO transacciones (importacion_id, cliente_id, tipo, monto, nota)
-           VALUES (%s, %s, %s, %s, %s) RETURNING id""",
-        (importacion_id, m.cliente_id, m.tipo, m.monto, m.texto_original),
+        """INSERT INTO transacciones (importacion_id, cliente_id, tipo, monto, fecha_movimiento, nota)
+           VALUES (%s, %s, %s, %s, COALESCE(%s, CURRENT_DATE), %s) RETURNING id""",
+        (importacion_id, m.cliente_id, m.tipo, m.monto, m.fecha, m.texto_original),
     ).fetchone()
     transaccion_id = fila["id"]
 

@@ -1,4 +1,5 @@
 """Contrato del movimiento YA CONFIRMADO por el tendero (con ids de la BD)."""
+from datetime import date
 from decimal import Decimal
 from typing import Literal, Optional
 
@@ -15,5 +16,6 @@ class MovimientoConfirmado(BaseModel):
     cliente_id: Optional[int] = None
     tipo: Literal["venta", "fiado", "abono"]
     monto: Optional[Decimal] = None
+    fecha: Optional[date] = None
     items: list[ItemConfirmado] = []
     texto_original: Optional[str] = None

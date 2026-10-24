@@ -1,6 +1,6 @@
 """Reglas de negocio deterministas. Si algo falla, NO se guarda nada."""
 from decimal import Decimal
-
+from datetime import date
 from app.modelos import MovimientoConfirmado
 
 
@@ -23,6 +23,9 @@ def validar_movimiento(m: MovimientoConfirmado) -> list[str]:
 
     if m.tipo in ("fiado", "abono") and m.cliente_id is None:
         errores.append(f"Un {m.tipo} necesita cliente.{linea}")
+        
+    if m.fecha is not None and m.fecha > date.today():
+        errores.append(f"La fecha {m.fecha:%Y-%m-%d} está en el futuro.{linea}")
 
     if m.tipo == "abono" and m.items:
         errores.append(f"Un abono no lleva productos.{linea}")

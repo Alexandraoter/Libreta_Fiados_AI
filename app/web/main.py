@@ -13,8 +13,10 @@ from app.validaciones import MovimientoInvalido
 
 from .extractor import ErrorIA, extraer_texto
 from .schemas import validar_hoja
+from .catalogo_api import router as catalogo_router
 
 app = FastAPI(title="Libreta de Fiados Inteligente (prueba)")
+app.include_router(catalogo_router)
 
 TIPOS_PERMITIDOS = {"image/jpeg", "image/png"}
 MAX_BYTES = 8 * 1024 * 1024  # tamaño máximo de la foto: 8 MB

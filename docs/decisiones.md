@@ -74,3 +74,21 @@ confirma y `app/transacciones.py` guarda tras validar las reglas en código.
 
 **Evidencia:** `python -m pruebas.test_guardado` (rechaza la suma mal hecha de
 Luz y la anotación sin total de Rosita).
+
+## 3. Clientes y productos nuevos
+
+**Decisión:** el alta de clientes, productos y apodos la hace siempre el tendero
+desde la pantalla de revisión. La IA nunca crea registros.
+
+**Por qué no crear automáticamente:** un error de lectura o de ortografía crearía
+duplicados ("Rosita" y "Rosa") y partiría el saldo de una persona en dos.
+
+**Protección contra duplicados** (`app/catalogo.py`): si el nombre se parece a uno
+existente (puntaje de 0.8 o más), se rechaza y se muestran los parecidos; solo se
+crea si el tendero confirma que es otra persona o producto.
+
+**Apodos:** cuando el tendero asocia un nombre desconocido a un cliente existente,
+puede guardar el apodo (`agregar_alias`) para que la próxima vez se reconozca solo.
+
+**Fuera del MVP:** inicio de sesión del tendero y varias tiendas (el MVP asume una
+sola tienda).

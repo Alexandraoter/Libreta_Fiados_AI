@@ -12,7 +12,13 @@ MAX_TOKENS = int(os.getenv("MAX_TOKENS", "8192"))
 
 
 class FalloProveedor(Exception):
-    """Fallo al llamar a la IA. codigo: 'timeout' o 'api'."""
+    """Fallo al llamar a la IA.
+
+    codigo:
+      - 'timeout': la IA tardo mas del limite
+      - 'cuota':   se agoto el limite de uso (error 429)
+      - 'api':     cualquier otra caida o error de conexion
+    """
 
     def __init__(self, codigo: str, mensaje: str):
         super().__init__(mensaje)
@@ -64,10 +70,22 @@ def _es_timeout(e: Exception) -> bool:
     )
 
 
+def _es_cuota(e: Exception) -> bool:
+    texto = (type(e).__name__ + " " + str(e)).lower()
+    return (
+        "429" in texto
+        or "resource_exhausted" in texto
+        or "quota" in texto
+        or "rate limit" in texto
+    )
+
+
 def extraer_texto(img: bytes, mime: str, correccion: str | None = None) -> str:
     """Envia la foto a Gemini y devuelve el texto JSON crudo.
-    Lanza FalloProveedor si la IA tarda demasiado o la API falla.
-    `correccion` trae los errores del intento anterior para que la IA los arregle."""
+
+    Lanza FalloProveedor si la IA tarda demasiado, se agota la cuota o la API falla.
+    `correccion` trae los errores del intento anterior para que la IA los arregle.
+    """
     prompt = PROMPT
     if correccion:
         prompt += (
@@ -93,6 +111,11 @@ def extraer_texto(img: bytes, mime: str, correccion: str | None = None) -> str:
         print("Fallo de Gemini:", type(e).__name__, e)
         if _es_timeout(e):
             raise FalloProveedor("timeout", "La IA tardó demasiado. Intenta de nuevo.")
+        if _es_cuota(e):
+            raise FalloProveedor(
+                "cuota",
+                "Se agotó el límite de uso de la IA. Espera un minuto e intenta de nuevo.",
+            )
         raise FalloProveedor(
             "api", "No se pudo conectar con la IA. Revisa la clave y vuelve a intentar."
         )

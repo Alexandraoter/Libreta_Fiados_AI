@@ -1,4 +1,5 @@
 import pathlib
+import time
 from typing import Optional
 
 import psycopg
@@ -19,6 +20,8 @@ from .schemas import validar_hoja
 app = FastAPI(title="Libreta de Fiados Inteligente (prueba)")
 
 TIPOS_PERMITIDOS = {"image/jpeg", "image/png"}
+MAX_BYTES = 5 * 1024 * 1024  # 5 MB: fotos mas pesadas suelen causar timeouts
+CODIGOS_HTTP = {"timeout": 504, "cuota": 429}  # cualquier otro fallo de la IA -> 503
 
 
 def _aviso_resolucion(etiqueta: str, texto: str, r: dict) -> str | None:
@@ -31,19 +34,36 @@ def _aviso_resolucion(etiqueta: str, texto: str, r: dict) -> str | None:
 
 
 def resolver_en_bd(hoja) -> dict:
+    """Consulta clientes y productos (solo lectura) y registra una traza por cada consulta."""
     datos = hoja.model_dump(mode="json")
     datos["bd_disponible"] = True
+    datos["trazas"] = []
+
+    def registrar(herramienta: str, entrada: str, r: dict, t0: float):
+        nombres = [c["nombre"] for c in r["candidatos"]]
+        datos["trazas"].append({
+            "herramienta": herramienta,
+            "entrada": entrada,
+            "estado": r["estado"],
+            "detalle": "candidatos: " + (", ".join(nombres) if nombres else "ninguno"),
+            "ms": round((time.perf_counter() - t0) * 1000),
+        })
+
     try:
         for mov in datos["movimientos"]:
             mov["cliente_resuelto"] = None
             if mov["cliente"]:
+                t0 = time.perf_counter()
                 r = resolver_cliente(mov["cliente"])
+                registrar("buscar_cliente", mov["cliente"], r, t0)
                 mov["cliente_resuelto"] = r
                 aviso = _aviso_resolucion("El cliente", mov["cliente"], r)
                 if aviso:
                     mov["advertencias"].append(aviso)
             for item in mov["items"]:
+                t0 = time.perf_counter()
                 r = resolver_producto(item["producto"])
+                registrar("buscar_producto", item["producto"], r, t0)
                 item["producto_resuelto"] = r
                 aviso = _aviso_resolucion("El producto", item["producto"], r)
                 if aviso:
@@ -56,14 +76,15 @@ def resolver_en_bd(hoja) -> dict:
 
 
 def leer_hoja(img: bytes, mime: str):
-    """Pide la lectura a Gemini y valida el contrato. Maneja los fallos 1, 2 y 3."""
+    """Pide la lectura a Gemini y valida el contrato.
+    Maneja los 3 fallos: timeout, respuesta invalida y caida de la API.
+    Devuelve (hoja, intentos_usados)."""
     correccion = None
     for intento in range(2):
         try:
             texto = extraer_texto(img, mime, correccion)
         except FalloProveedor as e:
-            codigo = 504 if e.codigo == "timeout" else 503
-            raise HTTPException(status_code=codigo, detail=e.mensaje)
+            raise HTTPException(status_code=CODIGOS_HTTP.get(e.codigo, 503), detail=e.mensaje)
 
         try:
             hoja = validar_hoja(texto)
@@ -80,7 +101,7 @@ def leer_hoja(img: bytes, mime: str):
                 status_code=422,
                 detail="No encontré movimientos en esta foto. Prueba con otra más clara.",
             )
-        return hoja
+        return hoja, intento + 1
 
     raise HTTPException(
         status_code=422,
@@ -94,9 +115,26 @@ def extraer(foto: UploadFile = File(...)):
         raise HTTPException(status_code=400, detail="Sube una imagen JPG o PNG.")
     img = foto.file.read()
     if not img:
-        raise HTTPException(status_code=400, detail="El archivo esta vacio.")
-    hoja = leer_hoja(img, foto.content_type)
-    return resolver_en_bd(hoja)
+        raise HTTPException(status_code=400, detail="El archivo está vacío.")
+    if len(img) > MAX_BYTES:
+        raise HTTPException(
+            status_code=413,
+            detail=f"La foto pesa más de {MAX_BYTES // (1024 * 1024)} MB. Sube una más liviana.",
+        )
+
+    t0 = time.perf_counter()
+    hoja, intentos = leer_hoja(img, foto.content_type)
+    ms_ia = round((time.perf_counter() - t0) * 1000)
+
+    datos = resolver_en_bd(hoja)
+    datos["trazas"].insert(0, {
+        "herramienta": "leer_hoja (Gemini)",
+        "entrada": foto.filename or "foto",
+        "estado": "ok",
+        "detalle": f"{len(hoja.movimientos)} movimiento(s) · intentos: {intentos}",
+        "ms": ms_ia,
+    })
+    return datos
 
 
 @app.get("/api/catalogo")

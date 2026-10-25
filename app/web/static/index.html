@@ -44,6 +44,14 @@
             cursor: not-allowed;
         }
 
+        button:focus-visible,
+        select:focus-visible,
+        input:focus-visible,
+        summary:focus-visible {
+            outline: 3px solid #1d4f91;
+            outline-offset: 2px;
+        }
+
         #preview {
             max-width: 100%;
             max-height: 220px;
@@ -171,6 +179,22 @@
             margin: 1rem 0;
         }
 
+        .espera {
+            background: #eef3fb;
+            color: #1d4f91;
+            padding: .8rem 1rem;
+            border-radius: 8px;
+            margin-top: 1rem;
+        }
+
+        .totales {
+            background: #f4f4f4;
+            border-radius: 8px;
+            padding: .6rem 1rem;
+            margin: .8rem 0;
+            font-size: .95rem;
+        }
+
         #barra {
             position: sticky;
             bottom: 0;
@@ -185,6 +209,71 @@
         .pasos {
             font-weight: 600;
         }
+
+        /* Panel de trazas */
+        details#trazas {
+            margin: 1rem 0;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: .5rem 1rem;
+            background: #fafafa;
+        }
+
+        details#trazas summary {
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .traza {
+            font-family: ui-monospace, Consolas, monospace;
+            font-size: .8rem;
+            margin: .5rem 0;
+            color: #333;
+            word-break: break-word;
+        }
+
+        .traza .estado-ok,
+        .traza .estado-encontrado {
+            color: #176b34;
+            font-weight: 600;
+        }
+
+        .traza .estado-ambiguo {
+            color: #b36b00;
+            font-weight: 600;
+        }
+
+        .traza .estado-no_encontrado {
+            color: #a11;
+            font-weight: 600;
+        }
+
+        .traza .ms {
+            color: #777;
+        }
+
+        @media (max-width: 520px) {
+            body {
+                margin: 1rem auto;
+            }
+
+            .fila {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .fila select,
+            .fila input[type=number] {
+                width: 100%;
+                box-sizing: border-box;
+            }
+
+            #barra {
+                flex-direction: column;
+                align-items: stretch;
+                gap: .4rem;
+            }
+        }
     </style>
 </head>
 
@@ -197,13 +286,17 @@
         <input type="file" id="archivo" accept="image/jpeg,image/png">
         <img id="preview" alt="Vista previa de la foto">
         <div><button id="enviar" disabled>Leer hoja</button></div>
-        <div id="estado"></div>
+        <div id="estado" aria-live="polite"></div>
     </section>
 
     <!-- Paso 2 -->
     <section id="paso-revision" class="hidden">
         <p class="pasos">2. Revisa lo que entendió la IA y corrige lo que haga falta</p>
         <div id="tarjetas"></div>
+        <details id="trazas">
+            <summary>Trazas de la IA y las herramientas (<span id="n-trazas">0</span>)</summary>
+            <div id="lista-trazas"></div>
+        </details>
         <div id="barra">
             <button id="ir-resumen" disabled>Continuar</button>
             <span id="faltan"></span>
@@ -213,6 +306,7 @@
     <!-- Paso 3 -->
     <section id="paso-resumen" class="hidden">
         <p class="pasos">3. Confirma lo que se va a guardar</p>
+        <div id="totales" class="totales"></div>
         <div id="lista-resumen"></div>
         <p><label><input type="checkbox" id="prueba" checked> Modo prueba (valida pero NO guarda los
                 movimientos)</label></p>
@@ -220,7 +314,7 @@
             <button id="volver" class="sec">Volver a editar</button>
             <button id="guardar">Guardar</button>
         </div>
-        <div id="salida"></div>
+        <div id="salida" aria-live="polite"></div>
     </section>
 
     <!-- Resultado -->
@@ -236,9 +330,12 @@
             subir: $("paso-subir"), revision: $("paso-revision"),
             resumen: $("paso-resumen"), final: $("paso-final"),
         };
+        const MAX_MB = 5;                       // mismo limite que el servidor
+        const REINTENTABLES = [429, 503, 504];  // errores donde tiene sentido volver a intentar
         let catalogo = null;
         let filas = [];
-        let registro = { cliente: [], producto: [] };   // todos los selectores, para añadir altas nuevas
+        let registro = { cliente: [], producto: [] };   // todos los selectores, para anadir altas nuevas
+        let temporizador = null;
 
         function ir(paso) {
             Object.entries(pasos).forEach(([k, el]) => el.classList.toggle("hidden", k !== paso));
@@ -302,6 +399,7 @@
             const caja = crear("div", "error", msg);
             if (reintentable) {
                 const b = crear("button", "sec", "Reintentar");
+                b.type = "button";
                 b.addEventListener("click", () => enviar.click());
                 caja.append(crear("br"), b);
             }
@@ -313,6 +411,25 @@
                 const r = await fetch("/api/catalogo");
                 return r.ok ? await r.json() : null;
             } catch (e) { return null; }
+        }
+
+        // ---------- Panel de trazas ----------
+        function mostrarTrazas(trazas) {
+            const lista = trazas || [];
+            const cont = $("lista-trazas");
+            cont.replaceChildren();
+            lista.forEach((t) => {
+                const linea = crear("div", "traza");
+                linea.append(
+                    `${t.herramienta}("${t.entrada}") → `,
+                    crear("span", "estado-" + t.estado, t.estado),
+                    ` · ${t.detalle} · `,
+                    crear("span", "ms", `${t.ms} ms`)
+                );
+                cont.appendChild(linea);
+            });
+            if (!lista.length) cont.appendChild(crear("div", "traza", "Sin trazas."));
+            $("n-trazas").textContent = lista.length;
         }
 
         // ---------- Altas del tendero (clientes, productos, apodos) ----------
@@ -551,6 +668,7 @@
             $("tarjetas").replaceChildren();
             filas = hoja.movimientos.map((m) => tarjeta(m));
             filas.forEach((f) => $("tarjetas").appendChild(f.card));
+            mostrarTrazas(hoja.trazas);
             refrescarTodo();
             ir("revision");
             return true;
@@ -560,8 +678,10 @@
         $("ir-resumen").addEventListener("click", () => {
             const lista = $("lista-resumen");
             lista.replaceChildren();
+            const sumas = { fiado: 0, abono: 0, venta: 0 };
             filas.filter((f) => f.incluir.checked).forEach((f) => {
                 const d = leer(f);
+                sumas[d.tipo] += d.monto;
                 const cliente = f.cliente.value ? f.cliente.selectedOptions[0].text : "(sin cliente)";
                 const caja = crear("div", "mov");
                 caja.appendChild(crear("strong", "", `${cliente} · ${d.tipo} · ${dinero(d.monto)}`));
@@ -571,6 +691,8 @@
                 });
                 lista.appendChild(caja);
             });
+            $("totales").textContent =
+                `Fiados: ${dinero(sumas.fiado)} · Abonos: ${dinero(sumas.abono)} · Ventas de contado: ${dinero(sumas.venta)}`;
             $("salida").replaceChildren();
             ir("resumen");
         });
@@ -608,7 +730,7 @@
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ movimientos, archivo: archivo.files[0]?.name ?? null, simular }),
                 });
-                const cuerpo = await res.json();
+                const cuerpo = await res.json().catch(() => ({}));
 
                 if (!res.ok) {
                     const caja = crear("div", "error", "No se guardó nada. Corrige esto:");
@@ -640,7 +762,7 @@
             const ul = crear("ul", "");
             c.resultados.forEach((r) => {
                 const quien = r.cliente ?? "Venta sin cliente";
-                const saldo = r.saldo !== null ? ` → saldo (lo que debe): ${dinero(r.saldo)}` : "";
+                const saldo = r.saldo !== null && r.saldo !== undefined ? ` → saldo (lo que debe): ${dinero(r.saldo)}` : "";
                 ul.appendChild(crear("li", "", `${quien} · ${r.tipo} · ${dinero(r.monto)}${saldo}`));
             });
             cont.appendChild(ul);
@@ -655,6 +777,8 @@
             enviar.disabled = true;
             estado.replaceChildren();
             filas = [];
+            registro = { cliente: [], producto: [] };
+            mostrarTrazas([]);
             ir("subir");
         });
 
@@ -662,17 +786,42 @@
         archivo.addEventListener("change", () => {
             const f = archivo.files[0];
             if (!f) return;
+            if (f.size > MAX_MB * 1024 * 1024) {
+                archivo.value = "";
+                preview.style.display = "none";
+                enviar.disabled = true;
+                mostrarError(`La foto pesa ${(f.size / 1048576).toFixed(1)} MB. El máximo es ${MAX_MB} MB: sube una más liviana.`, false);
+                return;
+            }
             preview.src = URL.createObjectURL(f);
             preview.style.display = "block";
             enviar.disabled = false;
             estado.replaceChildren();
         });
 
+        // Mensaje de espera que cambia si la IA tarda
+        function iniciarEspera() {
+            const caja = crear("div", "espera", "Leyendo la hoja con IA… puede tardar unos segundos.");
+            estado.replaceChildren(caja);
+            const inicio = Date.now();
+            temporizador = setInterval(() => {
+                const s = Math.round((Date.now() - inicio) / 1000);
+                caja.textContent = s < 10
+                    ? "Leyendo la hoja con IA… puede tardar unos segundos."
+                    : `Sigue leyendo (${s} s). La letra a mano puede tardar más, no cierres la página.`;
+            }, 1000);
+        }
+
+        function terminarEspera() {
+            clearInterval(temporizador);
+            temporizador = null;
+        }
+
         enviar.addEventListener("click", async () => {
             const f = archivo.files[0];
             if (!f) return;
             enviar.disabled = true;
-            estado.replaceChildren(crear("p", "", "Leyendo la hoja con IA... puede tardar unos segundos."));
+            iniciarEspera();
 
             const datos = new FormData();
             datos.append("foto", f);
@@ -682,16 +831,22 @@
                     cargarCatalogo(),
                 ]);
                 catalogo = cat;
-                const cuerpo = await res.json();
+                const cuerpo = await res.json().catch(() => ({}));
+                terminarEspera();
                 if (!res.ok) {
-                    mostrarError(typeof cuerpo.detail === "string" ? cuerpo.detail : "Error al procesar la foto.", [503, 504].includes(res.status));
+                    mostrarError(
+                        typeof cuerpo.detail === "string" ? cuerpo.detail : "Error al procesar la foto.",
+                        REINTENTABLES.includes(res.status)
+                    );
                 } else {
                     estado.replaceChildren();
                     mostrarHoja(cuerpo);
                 }
             } catch (e) {
+                terminarEspera();
                 mostrarError("No se pudo conectar con el servidor.", true);
             } finally {
+                terminarEspera();
                 enviar.disabled = false;
             }
         });

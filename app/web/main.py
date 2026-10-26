@@ -1,4 +1,5 @@
 import pathlib
+import os
 import time
 from typing import Optional
 
@@ -88,7 +89,8 @@ def leer_hoja(img: bytes, mime: str, proveedor=None):
             detail="La IA no está configurada. Avisa a quien administra la app.",
         )
     correccion = None
-    for intento in range(2):
+    max_intentos = int(os.getenv("MAX_INTENTOS", "2"))
+    for intento in range(max_intentos):
         try:
             texto = proveedor.leer_hoja(img, mime, correccion)
         except FalloProveedor as e:

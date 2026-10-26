@@ -1,3 +1,4 @@
+"""
 import os
 
 from dotenv import load_dotenv
@@ -10,7 +11,7 @@ MODEL_NAME = os.getenv("MODEL_NAME", "gemini-2.5-flash")
 TIMEOUT_SEGUNDOS = int(os.getenv("TIMEOUT_SEGUNDOS", "30"))
 MAX_TOKENS = int(os.getenv("MAX_TOKENS", "8192"))
 
-
+"""
 class FalloProveedor(Exception):
     """Fallo al llamar a la IA.
 
@@ -46,6 +47,8 @@ Responde SOLO con un JSON valido (sin texto extra, sin ```), con esta forma exac
   ]
 }
 
+"""
+"""
 Reglas:
 - "fiado": el cliente se lleva productos sin pagar. Lleva cliente e items.
 - "abono": el cliente paga parte de su deuda. Lleva cliente, monto y items vacio [].
@@ -57,7 +60,7 @@ Reglas:
 - Copia los nombres de clientes y productos tal como estan escritos, no los corrijas.
 - Si la imagen no tiene movimientos, responde {"movimientos": []}.
 """
-
+"""
 
 def _es_timeout(e: Exception) -> bool:
     nombre = type(e).__name__.lower()
@@ -79,6 +82,7 @@ def _es_cuota(e: Exception) -> bool:
         or "rate limit" in texto
     )
 
+"""
 
 def extraer_texto(img: bytes, mime: str, correccion: str | None = None) -> str:
     """Envia la foto a Gemini y devuelve el texto JSON crudo.
@@ -92,6 +96,8 @@ def extraer_texto(img: bytes, mime: str, correccion: str | None = None) -> str:
             "\n\nTu respuesta anterior no cumplio el formato. Errores: "
             f"{correccion}. Corrigelos y responde solo con el JSON."
         )
+
+        """
 
     try:
         client = genai.Client(
@@ -125,3 +131,4 @@ def extraer_texto(img: bytes, mime: str, correccion: str | None = None) -> str:
         raise FalloProveedor("api", "La IA no devolvió respuesta. Intenta de nuevo.")
     return texto
     
+    """

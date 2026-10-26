@@ -14,7 +14,7 @@ from app.modelos import MovimientoConfirmado
 from app.transacciones import guardar_movimiento
 from app.validaciones import MovimientoInvalido
 
-from .extractor import FalloProveedor, extraer_texto
+from app.ia import FalloProveedor, obtener_proveedor
 from .schemas import validar_hoja
 
 app = FastAPI(title="Libreta de Fiados Inteligente (prueba)")
@@ -75,21 +75,22 @@ def resolver_en_bd(hoja) -> dict:
     return datos
 
 
-def leer_hoja(img: bytes, mime: str):
+def leer_hoja(img: bytes, mime: str, proveedor=None):
     """Pide la lectura a Gemini y valida el contrato.
     Maneja los 3 fallos: timeout, respuesta invalida y caida de la API.
     Devuelve (hoja, intentos_usados)."""
+    proveedor = proveedor or obtener_proveedor()
     correccion = None
     for intento in range(2):
         try:
-            texto = extraer_texto(img, mime, correccion)
+            texto = proveedor.leer_hoja(img, mime, correccion)
         except FalloProveedor as e:
             raise HTTPException(status_code=CODIGOS_HTTP.get(e.codigo, 503), detail=e.mensaje)
 
         try:
             hoja = validar_hoja(texto)
         except ValidationError as e:
-            print(f"--- Intento {intento + 1}: respuesta cruda de Gemini (no cumple el contrato) ---")
+            print(f"--- Intento {intento + 1}: respuesta cruda de la IA (no cumple el contrato) ---")
             print(texto)
             correccion = "; ".join(
                 f"{'.'.join(str(p) for p in err['loc'])}: {err['msg']}" for err in e.errors()[:5]

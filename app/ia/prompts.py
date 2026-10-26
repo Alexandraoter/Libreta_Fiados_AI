@@ -12,6 +12,7 @@ Responde SOLO con un JSON valido (sin texto extra, sin ```), con esta forma exac
       "tipo": "fiado" | "abono" | "venta",
       "cliente": "nombre tal como aparece, o null",
       "monto": numero,
+      "fecha": "AAAA-MM-DD" o null,
       "items": [
         {"producto": "texto del producto", "cantidad": numero, "precio_unitario": numero}
       ],
@@ -25,7 +26,7 @@ Reglas:
 - "abono": el cliente paga parte de su deuda. Lleva cliente, monto y items vacio [].
 - "venta": venta de contado, normalmente sin cliente (cliente null).
 - Los montos son pesos colombianos, como numeros sin puntos ni simbolos ($2.500 -> 2500).
-- Si no hay precio unitario legible, pon null en precio_unitario.
+- Las fechas en la libreta van en formato dia/mes/año. Conviertelas a AAAA-MM-DD. Si no hay fecha legible, null.
 - NO inventes datos. Si algo es ilegible o dudoso, dejalo como null y explica el motivo
   en "advertencias" (lista de textos cortos).
 - Copia los nombres de clientes y productos tal como estan escritos, no los corrijas.

@@ -18,7 +18,7 @@ class Movimiento(BaseModel):
     fecha: Optional[date] = None
     items: list[Item] = []
     texto_original: str
-    advertencias: list[str] = []                         # las llena el codigo, no la IA
+    advertencias: list[str] = []                         # IA (dudas de lectura) + codigo (reglas)
 
 
 class Hoja(BaseModel):
@@ -55,6 +55,6 @@ def validar_hoja(texto_json: str) -> Hoja:
     """Valida el contrato (puede lanzar ValidationError) y agrega advertencias."""
     hoja = Hoja.model_validate_json(texto_json)
     for m in hoja.movimientos:
-        m.advertencias = calcular_advertencias(m)
+        m.advertencias = m.advertencias + calcular_advertencias(m)
     return hoja
     

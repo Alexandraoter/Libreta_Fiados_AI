@@ -79,7 +79,14 @@ def leer_hoja(img: bytes, mime: str, proveedor=None):
     """Pide la lectura a Gemini y valida el contrato.
     Maneja los 3 fallos: timeout, respuesta invalida y caida de la API.
     Devuelve (hoja, intentos_usados)."""
-    proveedor = proveedor or obtener_proveedor()
+    try:
+        proveedor = proveedor or obtener_proveedor()
+    except ValueError as e:
+        print("IA mal configurada:", e)
+        raise HTTPException(
+            status_code=503,
+            detail="La IA no está configurada. Avisa a quien administra la app.",
+        )
     correccion = None
     for intento in range(2):
         try:

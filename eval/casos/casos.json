@@ -1,0 +1,13 @@
+[
+  {
+    "id": "01-hoja-mixta",
+    "foto": "01.jpg",
+    "descripcion": "4 líneas: fiado normal, abono a un nombre ambiguo, suma que no cuadra y fiado sin total",
+    "esperado": [
+      {"tipo": "fiado", "cliente": ["Rosa Martínez"],   "monto": 8400},
+      {"tipo": "abono", "cliente": ["don pedro"],       "monto": 5000},
+      {"tipo": "fiado", "cliente": ["Luz Marina Ríos"], "monto": 9000},
+      {"tipo": "fiado", "cliente": ["Rosa Martínez"],   "monto": null}
+    ]
+  }
+]

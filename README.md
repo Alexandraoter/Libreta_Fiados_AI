@@ -148,8 +148,8 @@ La respuesta de `/api/extraer` incluye una lista `trazas`, y la interfaz la mues
 ## 10. Pruebas
 
 ```bash
-# Instalar pytest (no forma parte de requirements.txt)
-pip install -r requirements.txt pytest
+# Instalar las dependencias de desarrollo (incluye pytest)
+pip install -r requirements-dev.txt
 
 # Algunas pruebas consultan la base de datos: levantarla primero
 docker compose up -d db
@@ -169,6 +169,7 @@ Dockerfile
 run.sh / run.ps1       # arranque con un solo comando
 .env.example
 requirements.txt
+requirements-dev.txt   # requirements.txt + pytest (para las pruebas)
 app/
   ia/                  # capa de IA desacoplada (sección 5)
   web/                 # FastAPI: main.py, schemas.py y la interfaz en static/

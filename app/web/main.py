@@ -5,6 +5,7 @@ from typing import Optional
 
 import psycopg
 from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ValidationError
 
@@ -16,13 +17,14 @@ from app.transacciones import guardar_movimiento
 from app.validaciones import MovimientoInvalido
 
 from app.ia import FalloProveedor, obtener_proveedor
+from app.ia.presupuesto import Presupuesto
 from .schemas import validar_hoja
 
 app = FastAPI(title="Libreta de Fiados Inteligente (prueba)")
 
 TIPOS_PERMITIDOS = {"image/jpeg", "image/png"}
 MAX_BYTES = 5 * 1024 * 1024  # 5 MB: fotos mas pesadas suelen causar timeouts
-CODIGOS_HTTP = {"timeout": 504, "cuota": 429}  # cualquier otro fallo de la IA -> 503
+CODIGOS_HTTP = {"timeout": 504, "cuota": 429, "tokens": 422}  # cualquier otro fallo de la IA -> 503
 
 
 def _aviso_resolucion(etiqueta: str, texto: str, r: dict) -> str | None:
@@ -76,12 +78,16 @@ def resolver_en_bd(hoja) -> dict:
     return datos
 
 
-def leer_hoja(img: bytes, mime: str, proveedor=None):
-    """Pide la lectura a Gemini y valida el contrato.
-    Maneja los 3 fallos: timeout, respuesta invalida y caida de la API.
+def leer_hoja(img: bytes, mime: str, proveedor=None, trazas: list | None = None):
+    """Pide la lectura a la IA y valida el contrato.
+    Maneja los fallos: timeout, respuesta invalida, caida de la API y topes de uso.
+    Un solo `Presupuesto` (tiempo total y tokens acumulados) cubre TODOS los intentos.
+    `trazas`: lista a la que se agregan las trazas del agente y de los intentos invalidos.
     Devuelve (hoja, intentos_usados)."""
+    trazas = trazas if trazas is not None else []
     try:
         proveedor = proveedor or obtener_proveedor()
+        presupuesto = Presupuesto.desde_entorno()
     except ValueError as e:
         print("IA mal configurada:", e)
         raise HTTPException(
@@ -91,8 +97,10 @@ def leer_hoja(img: bytes, mime: str, proveedor=None):
     correccion = None
     max_intentos = int(os.getenv("MAX_INTENTOS", "2"))
     for intento in range(max_intentos):
+        t_intento = time.perf_counter()
         try:
-            texto = proveedor.leer_hoja(img, mime, correccion)
+            presupuesto.verificar()   # no se empieza otro intento sin tiempo o tokens
+            texto = proveedor.leer_hoja(img, mime, correccion, trazas=trazas, presupuesto=presupuesto)
         except FalloProveedor as e:
             raise HTTPException(status_code=CODIGOS_HTTP.get(e.codigo, 503), detail=e.mensaje)
 
@@ -104,6 +112,13 @@ def leer_hoja(img: bytes, mime: str, proveedor=None):
             correccion = "; ".join(
                 f"{'.'.join(str(p) for p in err['loc'])}: {err['msg']}" for err in e.errors()[:5]
             )
+            trazas.append({
+                "herramienta": "validar_hoja",
+                "entrada": f"intento {intento + 1}",
+                "estado": "invalido",
+                "detalle": correccion,
+                "ms": round((time.perf_counter() - t_intento) * 1000),
+            })
             continue
 
         if not hoja.movimientos:
@@ -132,18 +147,32 @@ def extraer(foto: UploadFile = File(...)):
             detail=f"La foto pesa más de {MAX_BYTES // (1024 * 1024)} MB. Sube una más liviana.",
         )
 
+    trazas: list[dict] = []   # las llena leer_hoja (agente e intentos invalidos)
     t0 = time.perf_counter()
-    hoja, intentos = leer_hoja(img, foto.content_type)
+    try:
+        hoja, intentos = leer_hoja(img, foto.content_type, trazas=trazas)
+    except HTTPException as e:
+        # El fallo tambien deja traza: la pantalla la muestra aunque no haya hoja que revisar
+        trazas.insert(0, {
+            "herramienta": "leer_hoja (Gemini)",
+            "entrada": foto.filename or "foto",
+            "estado": "error",
+            "detalle": f"HTTP {e.status_code}: {e.detail}",
+            "ms": round((time.perf_counter() - t0) * 1000),
+        })
+        return JSONResponse(status_code=e.status_code, content={"detail": e.detail, "trazas": trazas})
     ms_ia = round((time.perf_counter() - t0) * 1000)
 
     datos = resolver_en_bd(hoja)
-    datos["trazas"].insert(0, {
+    lectura = {
         "herramienta": "leer_hoja (Gemini)",
         "entrada": foto.filename or "foto",
         "estado": "ok",
         "detalle": f"{len(hoja.movimientos)} movimiento(s) · intentos: {intentos}",
         "ms": ms_ia,
-    })
+    }
+    # Orden: la lectura, lo que consulto el agente y al final la resolucion determinista en la BD
+    datos["trazas"] = [lectura] + trazas + datos["trazas"]
     return datos
 
 

@@ -19,7 +19,8 @@ def test_reintento_manda_correccion():
     assert len(hoja.movimientos) == 2
 
 
-def test_dos_respuestas_invalidas_dan_422():
+def test_dos_respuestas_invalidas_dan_422(monkeypatch):
+    monkeypatch.setenv("MAX_INTENTOS", "2")
     p = ProveedorFalso(ESCENARIOS["invalido"])
     with pytest.raises(HTTPException) as exc:
         leer_hoja(IMG, MIME, proveedor=p)

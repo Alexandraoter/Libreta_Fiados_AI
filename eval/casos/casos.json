@@ -4,10 +4,96 @@
     "foto": "01.jpg",
     "descripcion": "4 líneas: fiado normal, abono a un nombre ambiguo, suma que no cuadra y fiado sin total",
     "esperado": [
-      {"tipo": "fiado", "cliente": ["Rosa Martínez"],   "monto": 8400},
-      {"tipo": "abono", "cliente": ["don pedro"],       "monto": 5000},
+      {"tipo": "fiado", "cliente": ["Rosa Martínez"], "monto": 8400},
+      {"tipo": "abono", "cliente": ["don pedro"], "monto": 5000},
       {"tipo": "fiado", "cliente": ["Luz Marina Ríos"], "monto": 9000},
-      {"tipo": "fiado", "cliente": ["Rosa Martínez"],   "monto": null}
+      {"tipo": "fiado", "cliente": ["Rosa Martínez"], "monto": null}
+    ]
+  },
+  {
+    "id": "02-fiados-con-fecha",
+    "foto": "02.jpg",
+    "descripcion": "3 fiados con fecha: dos con año de 2 dígitos (12/10/26) y uno sin año (13/10: debe dar fecha null + advertencia). eval/run.py no puntúa la fecha: revísala a mano",
+    "esperado": [
+      {"tipo": "fiado", "cliente": ["Rosa Martínez"], "monto": 8400},
+      {"tipo": "fiado", "cliente": ["Luz Marina Ríos"], "monto": 1500},
+      {"tipo": "fiado", "cliente": ["Rosa Martínez"], "monto": 12500}
+    ]
+  },
+  {
+    "id": "03-abonos-con-sinonimos",
+    "foto": "03.jpg",
+    "descripcion": "4 abonos escritos con 'abono', 'pagó', 'dejó' y 'abonó', con montos en formato $10.000, 5.000, 3000 y 2.500",
+    "esperado": [
+      {"tipo": "abono", "cliente": ["Luz Marina Ríos"], "monto": 10000},
+      {"tipo": "abono", "cliente": ["Rosa Martínez"], "monto": 5000},
+      {"tipo": "abono", "cliente": ["Pedro Ruiz"], "monto": 3000},
+      {"tipo": "abono", "cliente": ["Rosa Martínez"], "monto": 2500}
+    ]
+  },
+  {
+    "id": "04-ventas-de-contado",
+    "foto": "04.jpg",
+    "descripcion": "3 ventas de contado, sin cliente: el cliente debe quedar null (no 'contado')",
+    "esperado": [
+      {"tipo": "venta", "cliente": null, "monto": 5500},
+      {"tipo": "venta", "cliente": null, "monto": 1400},
+      {"tipo": "venta", "cliente": null, "monto": 1500}
+    ]
+  },
+  {
+    "id": "05-hoja-sin-movimientos",
+    "foto": "05.jpg",
+    "descripcion": "Hoja sin movimientos: solo el título 'Octubre'. La respuesta correcta es no inventar nada (la app responde 422 'No encontré movimientos')",
+    "esperado": []
+  },
+  {
+    "id": "06-clientes-no-registrados",
+    "foto": "06.jpg",
+    "descripcion": "Clientes que no están en la BD (Carlos, Jorge): se muestran tal como se leyeron, sin forzarlos a un cliente existente",
+    "esperado": [
+      {"tipo": "fiado", "cliente": ["Carlos"], "monto": 25000},
+      {"tipo": "fiado", "cliente": ["Jorge"], "monto": 4800},
+      {"tipo": "abono", "cliente": ["Carlos"], "monto": 10000}
+    ]
+  },
+  {
+    "id": "07-total-escrito-no-cuadra",
+    "foto": "07.jpg",
+    "descripcion": "El total escrito no coincide con la suma (2x2800=5600 pero dice 5000; 3x4200=12600 pero dice 12000): se copia lo ESCRITO. La línea 'TOTAL 29500' no es un movimiento",
+    "esperado": [
+      {"tipo": "fiado", "cliente": ["Rosa Martínez"], "monto": 5000},
+      {"tipo": "fiado", "cliente": ["Luz Marina Ríos"], "monto": 12000},
+      {"tipo": "fiado", "cliente": ["Pedro Ruiz"], "monto": 12500}
+    ]
+  },
+  {
+    "id": "08-fiados-sin-total",
+    "foto": "08.jpg",
+    "descripcion": "Dos fiados con productos y sin total (monto null: la IA NO suma) y un fiado con total pero sin productos",
+    "esperado": [
+      {"tipo": "fiado", "cliente": ["Luz Marina Ríos"], "monto": null},
+      {"tipo": "fiado", "cliente": ["Rosa Martínez"], "monto": null},
+      {"tipo": "fiado", "cliente": ["Rosa Martínez"], "monto": 15000}
+    ]
+  },
+  {
+    "id": "09-lineas-tachadas",
+    "foto": "09.jpg",
+    "descripcion": "Dos líneas tachadas que NO deben aparecer (abono de Luz por 5000 y fiado de Pedro Ruiz) y la corrección de Luz (4000), que sí",
+    "esperado": [
+      {"tipo": "fiado", "cliente": ["Rosa Martínez"], "monto": 8400},
+      {"tipo": "abono", "cliente": ["Luz Marina Ríos"], "monto": 4000}
+    ]
+  },
+  {
+    "id": "10-varios-productos-y-nombre-ambiguo",
+    "foto": "10.jpg",
+    "descripcion": "Una línea con 2 productos para 'don pedro' (ambiguo entre Pedro Gómez y Pedro Ruiz: se muestra como se leyó), una cantidad fraccionaria (1/2) y un abono de 'Doña Luz'",
+    "esperado": [
+      {"tipo": "fiado", "cliente": ["don pedro"], "monto": 18100},
+      {"tipo": "fiado", "cliente": ["Pedro Ruiz"], "monto": 1750},
+      {"tipo": "abono", "cliente": ["Luz Marina Ríos"], "monto": 6000}
     ]
   }
 ]

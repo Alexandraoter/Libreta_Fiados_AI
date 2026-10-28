@@ -15,7 +15,13 @@
         }
 
         h1 {
-            font-size: 1.4rem;
+            font-family: Georgia, "Times New Roman", serif;
+            font-size: 2.1rem;
+            font-weight: 700;
+            text-align: center;
+            color: #1f4e4a;
+            margin: 2.2rem 0 1.6rem;
+            letter-spacing: .01em;
         }
 
         .hidden {
@@ -210,6 +216,165 @@
             font-weight: 600;
         }
 
+        /* ---------- Pantalla 1: subir foto ---------- */
+        #paso-subir:not(.hidden) {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1.4rem;
+            max-width: 520px;
+            margin: 0 auto 2rem;
+            padding: 2rem 1.75rem 2.2rem;
+            background: #f4f9f8;
+            border: 1px solid #d3e4e1;
+            border-radius: 16px;
+            text-align: center;
+        }
+
+        #paso-subir .pasos {
+            margin: 0;
+            font-size: 1.05rem;
+            color: #2b3f3d;
+        }
+
+        .zona-subida {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: .35rem;
+            width: 100%;
+            box-sizing: border-box;
+            padding: 2rem 1rem;
+            background: #fff;
+            border: 2px dashed #8fb8b3;
+            border-radius: 14px;
+            cursor: pointer;
+            transition: background .15s, border-color .15s;
+        }
+
+        .zona-subida:hover,
+        .zona-subida:focus-within {
+            background: #eaf4f2;
+            border-color: #1f4e4a;
+        }
+
+        .zona-subida:focus-within {
+            outline: 3px solid #1d4f91;
+            outline-offset: 2px;
+        }
+
+        .zona-subida svg {
+            width: 56px;
+            height: 56px;
+            margin-bottom: .4rem;
+        }
+
+        .zona-subida .titulo-zona {
+            font-weight: 600;
+            font-size: 1.05rem;
+            color: #1f4e4a;
+        }
+
+        .zona-subida .ayuda-zona {
+            font-size: .88rem;
+            color: #5b6f6d;
+        }
+
+        /* El input real queda oculto pero sigue siendo accesible con teclado */
+        #archivo {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            opacity: 0;
+            overflow: hidden;
+        }
+
+        #nombre-archivo {
+            font-size: .9rem;
+            font-weight: 600;
+            color: #2b3f3d;
+            word-break: break-all;
+        }
+
+        #nombre-archivo:empty {
+            display: none;
+        }
+
+        #paso-subir #preview {
+            margin: 0;
+            max-height: 240px;
+            border: 1px solid #d3e4e1;
+            box-shadow: 0 4px 14px rgba(31, 78, 74, .12);
+        }
+
+        #paso-subir #enviar {
+            min-width: 220px;
+            margin: 0;
+            padding: .85rem 2rem;
+            font-size: 1.05rem;
+            font-weight: 600;
+            color: #fff;
+            background: #1f4e4a;
+            border: 0;
+            border-radius: 999px;
+            transition: background .15s;
+        }
+
+        #paso-subir #enviar:hover:not(:disabled) {
+            background: #163836;
+        }
+
+        #paso-subir #enviar:disabled {
+            background: #9db5b2;
+            opacity: 1;
+        }
+
+        /* Espacio reservado bajo el botón: aquí sale el aviso de que la IA está revisando la hoja */
+        #paso-subir #estado {
+            width: 100%;
+            min-height: 3.4rem;
+        }
+
+        #paso-subir .espera {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: .7rem;
+            margin-top: 0;
+            text-align: center;
+            background: #e3f0ee;
+            color: #1f4e4a;
+            border: 1px solid #cfe3e0;
+        }
+
+        #paso-subir .espera::before {
+            content: "";
+            flex: none;
+            width: 1.1rem;
+            height: 1.1rem;
+            border: 3px solid #9db5b2;
+            border-top-color: #1f4e4a;
+            border-radius: 50%;
+            animation: giro .9s linear infinite;
+        }
+
+        #paso-subir .error {
+            margin-top: 0;
+            text-align: left;
+        }
+
+        @keyframes giro {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            #paso-subir .espera::before {
+                animation: none;
+            }
+        }
+
         /* Panel de trazas */
         details#trazas {
             margin: 1rem 0;
@@ -243,7 +408,9 @@
             font-weight: 600;
         }
 
-        .traza .estado-no_encontrado {
+        .traza .estado-no_encontrado,
+        .traza .estado-error,
+        .traza .estado-invalido {
             color: #a11;
             font-weight: 600;
         }
@@ -278,14 +445,25 @@
 </head>
 
 <body>
-    <h1>Libreta de Fiados Inteligente</h1>
+    <h1>Libreta de Fiados</h1>
 
     <!-- Paso 1 -->
     <section id="paso-subir">
         <p class="pasos">1. Sube una foto de la hoja</p>
-        <input type="file" id="archivo" accept="image/jpeg,image/png">
+        <label class="zona-subida" for="archivo">
+            <svg viewBox="0 0 64 64" aria-hidden="true" fill="none" stroke="#1f4e4a" stroke-width="3"
+                stroke-linecap="round" stroke-linejoin="round">
+                <rect x="6" y="10" width="52" height="44" rx="7" fill="#e3f0ee" />
+                <circle cx="21" cy="25" r="5" fill="#e9a23b" stroke="#e9a23b" />
+                <path d="M6 46l15-14 11 10 9-8 17 15" />
+            </svg>
+            <span class="titulo-zona">Elige la foto de tu hoja</span>
+            <span class="ayuda-zona">JPG o PNG, hasta 5 MB</span>
+            <input type="file" id="archivo" accept="image/jpeg,image/png">
+            <span id="nombre-archivo"></span>
+        </label>
         <img id="preview" alt="Vista previa de la foto">
-        <div><button id="enviar" disabled>Leer hoja</button></div>
+        <button id="enviar" disabled>Leer hoja</button>
         <div id="estado" aria-live="polite"></div>
     </section>
 
@@ -293,10 +471,6 @@
     <section id="paso-revision" class="hidden">
         <p class="pasos">2. Revisa lo que entendió la IA y corrige lo que haga falta</p>
         <div id="tarjetas"></div>
-        <details id="trazas">
-            <summary>Trazas de la IA y las herramientas (<span id="n-trazas">0</span>)</summary>
-            <div id="lista-trazas"></div>
-        </details>
         <div id="barra">
             <button id="ir-resumen" disabled>Continuar</button>
             <span id="faltan"></span>
@@ -322,6 +496,12 @@
         <div id="final"></div>
         <button id="nueva">Leer otra hoja</button>
     </section>
+
+    <!-- Trazas: fuera de los pasos para que se vean también cuando la lectura falla -->
+    <details id="trazas" class="hidden">
+        <summary>Trazas de la IA y las herramientas (<span id="n-trazas">0</span>)</summary>
+        <div id="lista-trazas"></div>
+    </details>
 
     <script>
         const $ = (id) => document.getElementById(id);
@@ -414,9 +594,11 @@
         }
 
         // ---------- Panel de trazas ----------
-        function mostrarTrazas(trazas) {
+        function mostrarTrazas(trazas, abrir = false) {
             const lista = trazas || [];
             const cont = $("lista-trazas");
+            $("trazas").classList.toggle("hidden", !lista.length);
+            if (abrir && lista.length) $("trazas").open = true;
             cont.replaceChildren();
             lista.forEach((t) => {
                 const linea = crear("div", "traza");
@@ -773,6 +955,7 @@
 
         $("nueva").addEventListener("click", () => {
             archivo.value = "";
+            $("nombre-archivo").textContent = "";
             preview.style.display = "none";
             enviar.disabled = true;
             estado.replaceChildren();
@@ -788,11 +971,13 @@
             if (!f) return;
             if (f.size > MAX_MB * 1024 * 1024) {
                 archivo.value = "";
+                $("nombre-archivo").textContent = "";
                 preview.style.display = "none";
                 enviar.disabled = true;
                 mostrarError(`La foto pesa ${(f.size / 1048576).toFixed(1)} MB. El máximo es ${MAX_MB} MB: sube una más liviana.`, false);
                 return;
             }
+            $("nombre-archivo").textContent = f.name;
             preview.src = URL.createObjectURL(f);
             preview.style.display = "block";
             enviar.disabled = false;
@@ -801,14 +986,14 @@
 
         // Mensaje de espera que cambia si la IA tarda
         function iniciarEspera() {
-            const caja = crear("div", "espera", "Leyendo la hoja con IA… puede tardar unos segundos.");
+            const caja = crear("div", "espera", "Tu hoja está siendo revisada por la IA… puede tardar unos segundos.");
             estado.replaceChildren(caja);
             const inicio = Date.now();
             temporizador = setInterval(() => {
                 const s = Math.round((Date.now() - inicio) / 1000);
                 caja.textContent = s < 10
-                    ? "Leyendo la hoja con IA… puede tardar unos segundos."
-                    : `Sigue leyendo (${s} s). La letra a mano puede tardar más, no cierres la página.`;
+                    ? "Tu hoja está siendo revisada por la IA… puede tardar unos segundos."
+                    : `La IA sigue revisando tu hoja (${s} s). La letra a mano puede tardar más, no cierres la página.`;
             }, 1000);
         }
 
@@ -821,6 +1006,7 @@
             const f = archivo.files[0];
             if (!f) return;
             enviar.disabled = true;
+            mostrarTrazas([]);
             iniciarEspera();
 
             const datos = new FormData();
@@ -834,6 +1020,7 @@
                 const cuerpo = await res.json().catch(() => ({}));
                 terminarEspera();
                 if (!res.ok) {
+                    mostrarTrazas(cuerpo.trazas, true);   // timeout, 503, 422...: también deja traza
                     mostrarError(
                         typeof cuerpo.detail === "string" ? cuerpo.detail : "Error al procesar la foto.",
                         REINTENTABLES.includes(res.status)

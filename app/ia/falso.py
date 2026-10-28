@@ -42,7 +42,10 @@ class ProveedorFalso:
         self.respuestas = respuestas if isinstance(respuestas, list) else [respuestas]
         self.llamadas: list[str | None] = []   # `correccion` recibida en cada llamada
 
-    def leer_hoja(self, img: bytes, mime: str, correccion: str | None = None) -> str:
+    def leer_hoja(
+        self, img: bytes, mime: str, correccion: str | None = None,
+        trazas: list | None = None, presupuesto=None,
+    ) -> str:
         self.llamadas.append(correccion)
         i = min(len(self.llamadas) - 1, len(self.respuestas) - 1)
         r = self.respuestas[i]

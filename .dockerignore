@@ -1,7 +1,5 @@
-.env
-.git
-venv
 .venv
+.git
 __pycache__
-*.pyc
-pruebas
+.pytest_cache
+.env

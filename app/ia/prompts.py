@@ -29,6 +29,7 @@ Reglas:
 - Las fechas en la libreta van en formato dia/mes/año. Conviertelas a AAAA-MM-DD. Si no hay fecha legible, null.
 - NO inventes datos. Si algo es ilegible o dudoso, dejalo como null y explica el motivo
   en "advertencias" (lista de textos cortos).
+- Si la libreta no escribe el total de la linea, pon null en "monto". NO lo calcules: el sistema suma los productos por su cuenta.
 - Copia los nombres de clientes y productos tal como estan escritos, no los corrijas.
 - Si la imagen no tiene movimientos, responde {"movimientos": []}.
 """

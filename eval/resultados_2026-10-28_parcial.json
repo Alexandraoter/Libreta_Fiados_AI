@@ -1,0 +1,558 @@
+{
+  "fecha": "2026-10-28",
+  "modelo": "gemini-3.6-flash",
+  "resumen": {
+    "ejecuciones": 30,
+    "exactitud": 1.0,
+    "latencia_mediana_s": 24.77,
+    "costo_mediano_usd": 0.01498125,
+    "tokens_medianos": 8731,
+    "tasa_fallos": 0.7,
+    "con_reintento": 0.0
+  },
+  "corridas": [
+    {
+      "caso": "01-hoja-mixta",
+      "rep": 1,
+      "ms": 26118,
+      "ok": true,
+      "error": null,
+      "intentos": 1,
+      "aciertos": 4,
+      "total": 4,
+      "tokens_total": 11408,
+      "costo_usd": 0.014913,
+      "obtenido": [
+        {
+          "tipo": "fiado",
+          "cliente": "Rosa Martínez",
+          "monto": 8400.0
+        },
+        {
+          "tipo": "abono",
+          "cliente": "Don pedro",
+          "monto": 5000.0
+        },
+        {
+          "tipo": "fiado",
+          "cliente": "Luz Marina Ríos",
+          "monto": 9000.0
+        },
+        {
+          "tipo": "fiado",
+          "cliente": "Rosa Martínez",
+          "monto": null
+        }
+      ]
+    },
+    {
+      "caso": "01-hoja-mixta",
+      "rep": 2,
+      "ms": 34753,
+      "ok": true,
+      "error": null,
+      "intentos": 1,
+      "aciertos": 4,
+      "total": 4,
+      "tokens_total": 8712,
+      "costo_usd": 0.015087,
+      "obtenido": [
+        {
+          "tipo": "fiado",
+          "cliente": "Rosa Martínez",
+          "monto": 8400.0
+        },
+        {
+          "tipo": "abono",
+          "cliente": "Don pedro",
+          "monto": 5000.0
+        },
+        {
+          "tipo": "fiado",
+          "cliente": "Luz Marina Ríos",
+          "monto": 9000.0
+        },
+        {
+          "tipo": "fiado",
+          "cliente": "Rosa Martínez",
+          "monto": null
+        }
+      ]
+    },
+    {
+      "caso": "01-hoja-mixta",
+      "rep": 3,
+      "ms": 24770,
+      "ok": true,
+      "error": null,
+      "intentos": 1,
+      "aciertos": 4,
+      "total": 4,
+      "tokens_total": 9310,
+      "costo_usd": 0.0172005,
+      "obtenido": [
+        {
+          "tipo": "fiado",
+          "cliente": "Rosa Martínez",
+          "monto": 8400.0
+        },
+        {
+          "tipo": "abono",
+          "cliente": "Don pedro",
+          "monto": 5000.0
+        },
+        {
+          "tipo": "fiado",
+          "cliente": "Luz Marina Ríos",
+          "monto": 9000.0
+        },
+        {
+          "tipo": "fiado",
+          "cliente": "Rosa Martínez",
+          "monto": null
+        }
+      ]
+    },
+    {
+      "caso": "02-fiados-con-fecha",
+      "rep": 1,
+      "ms": 25812,
+      "ok": true,
+      "error": null,
+      "intentos": 1,
+      "aciertos": 3,
+      "total": 3,
+      "tokens_total": 10669,
+      "costo_usd": 0.02046375,
+      "obtenido": [
+        {
+          "tipo": "fiado",
+          "cliente": "Rosa Martínez",
+          "monto": 8400.0
+        },
+        {
+          "tipo": "fiado",
+          "cliente": "Luz Marina Ríos",
+          "monto": 1500.0
+        },
+        {
+          "tipo": "fiado",
+          "cliente": "Rosa Martínez",
+          "monto": 12500.0
+        }
+      ]
+    },
+    {
+      "caso": "02-fiados-con-fecha",
+      "rep": 2,
+      "ms": 19946,
+      "ok": true,
+      "error": null,
+      "intentos": 1,
+      "aciertos": 3,
+      "total": 3,
+      "tokens_total": 8731,
+      "costo_usd": 0.01498125,
+      "obtenido": [
+        {
+          "tipo": "fiado",
+          "cliente": "Rosa Martínez",
+          "monto": 8400.0
+        },
+        {
+          "tipo": "fiado",
+          "cliente": "Luz Marina Ríos",
+          "monto": 1500.0
+        },
+        {
+          "tipo": "fiado",
+          "cliente": "Rosa Martínez",
+          "monto": 12500.0
+        }
+      ]
+    },
+    {
+      "caso": "02-fiados-con-fecha",
+      "rep": 3,
+      "ms": 38697,
+      "ok": true,
+      "error": null,
+      "intentos": 1,
+      "aciertos": 3,
+      "total": 3,
+      "tokens_total": 11519,
+      "costo_usd": 0.02241825,
+      "obtenido": [
+        {
+          "tipo": "fiado",
+          "cliente": "Rosa Martínez",
+          "monto": 8400.0
+        },
+        {
+          "tipo": "fiado",
+          "cliente": "Luz Marina Ríos",
+          "monto": 1500.0
+        },
+        {
+          "tipo": "fiado",
+          "cliente": "Rosa Martínez",
+          "monto": 12500.0
+        }
+      ]
+    },
+    {
+      "caso": "03-abonos-con-sinonimos",
+      "rep": 1,
+      "ms": 10786,
+      "ok": false,
+      "error": "HTTPException: Se agotó el límite de uso de la IA. Espera un minuto e intenta de nuevo.",
+      "intentos": 0,
+      "aciertos": 0,
+      "total": 4,
+      "tokens_total": 0,
+      "costo_usd": null,
+      "obtenido": []
+    },
+    {
+      "caso": "03-abonos-con-sinonimos",
+      "rep": 2,
+      "ms": 15286,
+      "ok": true,
+      "error": null,
+      "intentos": 1,
+      "aciertos": 4,
+      "total": 4,
+      "tokens_total": 6413,
+      "costo_usd": 0.00898875,
+      "obtenido": [
+        {
+          "tipo": "abono",
+          "cliente": "Luz Marina Ríos",
+          "monto": 10000.0
+        },
+        {
+          "tipo": "abono",
+          "cliente": "Rosa Martínez",
+          "monto": 5000.0
+        },
+        {
+          "tipo": "abono",
+          "cliente": "Pedro Ruiz",
+          "monto": 3000.0
+        },
+        {
+          "tipo": "abono",
+          "cliente": "Rosa Martínez",
+          "monto": 2500.0
+        }
+      ]
+    },
+    {
+      "caso": "03-abonos-con-sinonimos",
+      "rep": 3,
+      "ms": 24000,
+      "ok": true,
+      "error": null,
+      "intentos": 1,
+      "aciertos": 4,
+      "total": 4,
+      "tokens_total": 6945,
+      "costo_usd": 0.01056675,
+      "obtenido": [
+        {
+          "tipo": "abono",
+          "cliente": "Luz Marina Ríos",
+          "monto": 10000.0
+        },
+        {
+          "tipo": "abono",
+          "cliente": "Rosa Martínez",
+          "monto": 5000.0
+        },
+        {
+          "tipo": "abono",
+          "cliente": "Pedro Ruiz",
+          "monto": 3000.0
+        },
+        {
+          "tipo": "abono",
+          "cliente": "Rosa Martínez",
+          "monto": 2500.0
+        }
+      ]
+    },
+    {
+      "caso": "04-ventas-de-contado",
+      "rep": 1,
+      "ms": 2877,
+      "ok": false,
+      "error": "HTTPException: Se agotó el límite de uso de la IA. Espera un minuto e intenta de nuevo.",
+      "intentos": 0,
+      "aciertos": 0,
+      "total": 3,
+      "tokens_total": 0,
+      "costo_usd": null,
+      "obtenido": []
+    },
+    {
+      "caso": "04-ventas-de-contado",
+      "rep": 2,
+      "ms": 2831,
+      "ok": false,
+      "error": "HTTPException: Se agotó el límite de uso de la IA. Espera un minuto e intenta de nuevo.",
+      "intentos": 0,
+      "aciertos": 0,
+      "total": 3,
+      "tokens_total": 0,
+      "costo_usd": null,
+      "obtenido": []
+    },
+    {
+      "caso": "04-ventas-de-contado",
+      "rep": 3,
+      "ms": 2702,
+      "ok": false,
+      "error": "HTTPException: Se agotó el límite de uso de la IA. Espera un minuto e intenta de nuevo.",
+      "intentos": 0,
+      "aciertos": 0,
+      "total": 3,
+      "tokens_total": 0,
+      "costo_usd": null,
+      "obtenido": []
+    },
+    {
+      "caso": "05-hoja-sin-movimientos",
+      "rep": 1,
+      "ms": 206427,
+      "ok": false,
+      "error": "HTTPException: Se agotó el límite de uso de la IA. Espera un minuto e intenta de nuevo.",
+      "intentos": 0,
+      "aciertos": 0,
+      "total": 0,
+      "tokens_total": 0,
+      "costo_usd": null,
+      "obtenido": []
+    },
+    {
+      "caso": "05-hoja-sin-movimientos",
+      "rep": 2,
+      "ms": 2872,
+      "ok": false,
+      "error": "HTTPException: Se agotó el límite de uso de la IA. Espera un minuto e intenta de nuevo.",
+      "intentos": 0,
+      "aciertos": 0,
+      "total": 0,
+      "tokens_total": 0,
+      "costo_usd": null,
+      "obtenido": []
+    },
+    {
+      "caso": "05-hoja-sin-movimientos",
+      "rep": 3,
+      "ms": 5189,
+      "ok": true,
+      "error": null,
+      "intentos": 1,
+      "aciertos": 0,
+      "total": 0,
+      "tokens_total": 2573,
+      "costo_usd": 0.00299775,
+      "obtenido": []
+    },
+    {
+      "caso": "06-clientes-no-registrados",
+      "rep": 1,
+      "ms": 3434,
+      "ok": false,
+      "error": "HTTPException: Se agotó el límite de uso de la IA. Espera un minuto e intenta de nuevo.",
+      "intentos": 0,
+      "aciertos": 0,
+      "total": 3,
+      "tokens_total": 0,
+      "costo_usd": null,
+      "obtenido": []
+    },
+    {
+      "caso": "06-clientes-no-registrados",
+      "rep": 2,
+      "ms": 3444,
+      "ok": false,
+      "error": "HTTPException: Se agotó el límite de uso de la IA. Espera un minuto e intenta de nuevo.",
+      "intentos": 0,
+      "aciertos": 0,
+      "total": 3,
+      "tokens_total": 0,
+      "costo_usd": null,
+      "obtenido": []
+    },
+    {
+      "caso": "06-clientes-no-registrados",
+      "rep": 3,
+      "ms": 3205,
+      "ok": false,
+      "error": "HTTPException: Se agotó el límite de uso de la IA. Espera un minuto e intenta de nuevo.",
+      "intentos": 0,
+      "aciertos": 0,
+      "total": 3,
+      "tokens_total": 0,
+      "costo_usd": null,
+      "obtenido": []
+    },
+    {
+      "caso": "07-total-escrito-no-cuadra",
+      "rep": 1,
+      "ms": 3646,
+      "ok": false,
+      "error": "HTTPException: Se agotó el límite de uso de la IA. Espera un minuto e intenta de nuevo.",
+      "intentos": 0,
+      "aciertos": 0,
+      "total": 3,
+      "tokens_total": 0,
+      "costo_usd": null,
+      "obtenido": []
+    },
+    {
+      "caso": "07-total-escrito-no-cuadra",
+      "rep": 2,
+      "ms": 3548,
+      "ok": false,
+      "error": "HTTPException: Se agotó el límite de uso de la IA. Espera un minuto e intenta de nuevo.",
+      "intentos": 0,
+      "aciertos": 0,
+      "total": 3,
+      "tokens_total": 0,
+      "costo_usd": null,
+      "obtenido": []
+    },
+    {
+      "caso": "07-total-escrito-no-cuadra",
+      "rep": 3,
+      "ms": 3678,
+      "ok": false,
+      "error": "HTTPException: Se agotó el límite de uso de la IA. Espera un minuto e intenta de nuevo.",
+      "intentos": 0,
+      "aciertos": 0,
+      "total": 3,
+      "tokens_total": 0,
+      "costo_usd": null,
+      "obtenido": []
+    },
+    {
+      "caso": "08-fiados-sin-total",
+      "rep": 1,
+      "ms": 3624,
+      "ok": false,
+      "error": "HTTPException: Se agotó el límite de uso de la IA. Espera un minuto e intenta de nuevo.",
+      "intentos": 0,
+      "aciertos": 0,
+      "total": 3,
+      "tokens_total": 0,
+      "costo_usd": null,
+      "obtenido": []
+    },
+    {
+      "caso": "08-fiados-sin-total",
+      "rep": 2,
+      "ms": 3251,
+      "ok": false,
+      "error": "HTTPException: Se agotó el límite de uso de la IA. Espera un minuto e intenta de nuevo.",
+      "intentos": 0,
+      "aciertos": 0,
+      "total": 3,
+      "tokens_total": 0,
+      "costo_usd": null,
+      "obtenido": []
+    },
+    {
+      "caso": "08-fiados-sin-total",
+      "rep": 3,
+      "ms": 3524,
+      "ok": false,
+      "error": "HTTPException: Se agotó el límite de uso de la IA. Espera un minuto e intenta de nuevo.",
+      "intentos": 0,
+      "aciertos": 0,
+      "total": 3,
+      "tokens_total": 0,
+      "costo_usd": null,
+      "obtenido": []
+    },
+    {
+      "caso": "09-lineas-tachadas",
+      "rep": 1,
+      "ms": 3191,
+      "ok": false,
+      "error": "HTTPException: Se agotó el límite de uso de la IA. Espera un minuto e intenta de nuevo.",
+      "intentos": 0,
+      "aciertos": 0,
+      "total": 2,
+      "tokens_total": 0,
+      "costo_usd": null,
+      "obtenido": []
+    },
+    {
+      "caso": "09-lineas-tachadas",
+      "rep": 2,
+      "ms": 3187,
+      "ok": false,
+      "error": "HTTPException: Se agotó el límite de uso de la IA. Espera un minuto e intenta de nuevo.",
+      "intentos": 0,
+      "aciertos": 0,
+      "total": 2,
+      "tokens_total": 0,
+      "costo_usd": null,
+      "obtenido": []
+    },
+    {
+      "caso": "09-lineas-tachadas",
+      "rep": 3,
+      "ms": 3251,
+      "ok": false,
+      "error": "HTTPException: Se agotó el límite de uso de la IA. Espera un minuto e intenta de nuevo.",
+      "intentos": 0,
+      "aciertos": 0,
+      "total": 2,
+      "tokens_total": 0,
+      "costo_usd": null,
+      "obtenido": []
+    },
+    {
+      "caso": "10-varios-productos-y-nombre-ambiguo",
+      "rep": 1,
+      "ms": 13073,
+      "ok": false,
+      "error": "HTTPException: Se agotó el límite de uso de la IA. Espera un minuto e intenta de nuevo.",
+      "intentos": 0,
+      "aciertos": 0,
+      "total": 3,
+      "tokens_total": 0,
+      "costo_usd": null,
+      "obtenido": []
+    },
+    {
+      "caso": "10-varios-productos-y-nombre-ambiguo",
+      "rep": 2,
+      "ms": 13920,
+      "ok": false,
+      "error": "HTTPException: Se agotó el límite de uso de la IA. Espera un minuto e intenta de nuevo.",
+      "intentos": 0,
+      "aciertos": 0,
+      "total": 3,
+      "tokens_total": 0,
+      "costo_usd": null,
+      "obtenido": []
+    },
+    {
+      "caso": "10-varios-productos-y-nombre-ambiguo",
+      "rep": 3,
+      "ms": 3741,
+      "ok": false,
+      "error": "HTTPException: Se agotó el límite de uso de la IA. Espera un minuto e intenta de nuevo.",
+      "intentos": 0,
+      "aciertos": 0,
+      "total": 3,
+      "tokens_total": 0,
+      "costo_usd": null,
+      "obtenido": []
+    }
+  ]
+}

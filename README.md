@@ -113,11 +113,11 @@ Un compañero que no participó en el proyecto descargó el ZIP, siguió esta se
 
 | Dato | Valor |
 |---|---|
-| Quién la hizo | **[ nombre]** |
-| Fecha | **[ AAAA-MM-DD]** |
-| Sistema operativo | **[ Windows / macOS / Linux]** |
-| Tiempo hasta ver la app en `localhost:8000` | **[ minutos]** |
-| Problemas encontrados y cómo se corrigieron | **[ o "ninguno"]** |
+| Quién la hizo | **Alexandra Merchan Pantoja** |
+| Fecha | ** 2026-10-29** |
+| Sistema operativo | ** Windows ** |
+| Tiempo hasta ver la app en `localhost:8000` | **Latencia de 5min 15s** |
+| Problemas encontrados y cómo se corrigieron | **ninguno para ella** |
 
 ## 5. IA utilizada
 

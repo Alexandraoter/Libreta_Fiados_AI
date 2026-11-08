@@ -231,3 +231,20 @@ Se hicieron **dos mediciones** con el modelo `gemini-3.6-flash`. Cada ejecución
 - Cola de trabajos o streaming para lecturas lentas (sección 3).
 - Embeddings si el catálogo crece o se necesita entender sinónimos (sección 5).
 - Compatibilidad con varios proveedores en producción: la capa está desacoplada, pero solo hay una implementación real (Gemini) más la simulada.
+
+## Seguridad
+
+| Riesgo | Medida | Dónde | Evidencia |
+|---|---|---|---|
+| Cualquiera puede llamar la API y gastar la cuota de Gemini | Clave de acceso opcional (`APP_API_KEY`, cabecera `X-API-Key`) | `app/web/seguridad.py`, `main.py` | `test_clave_incorrecta_da_401` |
+| Abuso de `/api/extraer` | Límite por IP (`LIMITE_EXTRAER_POR_MIN`) | `seguridad.py` | Configurable en `.env` |
+| Archivo falso con extensión o tipo de imagen | Se valida la firma real de los bytes (JPG/PNG), no lo que declara el cliente | `tipo_real_imagen` | `test_firma_de_imagen`, `test_archivo_falso_disfrazado_de_jpg` |
+| La app usa el superusuario de la BD | Rol `app_fiados` con solo SELECT e INSERT | `db/roles/roles.sql` | `UPDATE` con ese rol responde `permission denied` |
+| BD expuesta a la red | Puerto publicado solo en `127.0.0.1` | `docker-compose.yml` | `docker port fiados_db` |
+| Contenedor con permisos de root | Usuario `appuser` sin shell | `Dockerfile` | `docker compose exec app whoami` |
+| Valores enormes que desbordan la BD o saturan la API | Topes máximos de tamaño en los modelos | `main.py`, `modelos.py` | Validación de Pydantic (422) |
+| Documentación pública de la API | `ENTORNO=produccion` apaga `/docs` y `/openapi.json` | `main.py` | — |
+
+**Ya estaba resuelto antes:** historial inmutable con triggers, consultas parametrizadas, el frontend usa `textContent` (sin `innerHTML`), la IA nunca escribe en la BD, y el prompt trata lo que devuelven las herramientas como datos.
+
+**Pendiente para producción:** HTTPS con un proxy inverso, usuarios con login (por ejemplo JWT) en lugar de una clave compartida, y un límite de uso que no dependa de la memoria del proceso.

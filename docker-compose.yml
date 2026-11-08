@@ -7,7 +7,7 @@ services:
       POSTGRES_PASSWORD: fiados
       POSTGRES_DB: fiados
     ports:
-      - "5433:5432"
+      - "127.0.0.1:5433:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./db:/docker-entrypoint-initdb.d:ro
@@ -23,7 +23,7 @@ services:
     env_file: .env
     environment:
       # Dentro de Docker la BD se llama "db" y usa el puerto interno 5432
-      DATABASE_URL: postgresql://fiados:fiados@db:5432/fiados
+      DATABASE_URL: ${DATABASE_URL_DOCKER:-postgresql://fiados:fiados@db:5432/fiados}
     ports:
       - "8000:8000"
     depends_on:

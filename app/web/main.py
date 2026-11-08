@@ -4,10 +4,12 @@ import time
 from typing import Optional
 
 import psycopg
-from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi import Depends, FastAPI, File, HTTPException, UploadFile
+from .seguridad import cabeceras_seguras, limitar_extracciones, tipo_real_imagen, verificar_clave
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel, Field, ValidationError
 
 from app.catalogo import RegistroInvalido, agregar_alias, crear_cliente, crear_producto
 from app.db import get_conn
@@ -20,7 +22,16 @@ from app.ia import FalloProveedor, obtener_proveedor
 from app.ia.presupuesto import Presupuesto
 from .schemas import validar_hoja
 
-app = FastAPI(title="Libreta de Fiados Inteligente (prueba)")
+EN_PRODUCCION = os.getenv("ENTORNO") == "produccion"
+
+app = FastAPI(
+    title="Libreta de Fiados Inteligente (prueba)",
+    dependencies=[Depends(verificar_clave)],   # protege TODAS las rutas /api
+    docs_url=None if EN_PRODUCCION else "/docs",
+    redoc_url=None,
+    openapi_url=None if EN_PRODUCCION else "/openapi.json",
+)
+app.middleware("http")(cabeceras_seguras)
 
 TIPOS_PERMITIDOS = {"image/jpeg", "image/png"}
 MAX_BYTES = 5 * 1024 * 1024  # 5 MB: fotos mas pesadas suelen causar timeouts
@@ -134,7 +145,7 @@ def leer_hoja(img: bytes, mime: str, proveedor=None, trazas: list | None = None)
     )
 
 
-@app.post("/api/extraer")
+@app.post("/api/extraer", dependencies=[Depends(limitar_extracciones)])
 def extraer(foto: UploadFile = File(...)):
     if foto.content_type not in TIPOS_PERMITIDOS:
         raise HTTPException(status_code=400, detail="Sube una imagen JPG o PNG.")
@@ -146,11 +157,14 @@ def extraer(foto: UploadFile = File(...)):
             status_code=413,
             detail=f"La foto pesa más de {MAX_BYTES // (1024 * 1024)} MB. Sube una más liviana.",
         )
+    mime = tipo_real_imagen(img)
+    if mime is None:
+        raise HTTPException(status_code=400, detail="El archivo no es una imagen JPG o PNG válida.")
 
     trazas: list[dict] = []   # las llena leer_hoja (agente e intentos invalidos)
     t0 = time.perf_counter()
     try:
-        hoja, intentos = leer_hoja(img, foto.content_type, trazas=trazas)
+        hoja, intentos = leer_hoja(img, mime, trazas=trazas)
     except HTTPException as e:
         # El fallo tambien deja traza: la pantalla la muestra aunque no haya hoja que revisar
         trazas.insert(0, {
@@ -196,22 +210,22 @@ def catalogo():
 
 # ---------- Altas por decision del tendero (app/catalogo.py) ----------
 class NuevoCliente(BaseModel):
-    nombre: str
-    telefono: Optional[str] = None
-    alias: list[str] = []
+    nombre: str = Field(max_length=120)
+    telefono: Optional[str] = Field(default=None, max_length=30)
+    alias: list[str] = Field(default=[], max_length=10)
     confirmar_duplicado: bool = False
 
 
 class NuevoProducto(BaseModel):
-    nombre: str
-    precio_ref: float
+    nombre: str = Field(max_length=120)
+    precio_ref: float = Field(le=10_000_000)
     confirmar_duplicado: bool = False
 
 
 class NuevoAlias(BaseModel):
     cliente_id: int
-    alias: str
-
+    alias: str = Field(max_length=60)
+    
 
 def _alta(funcion, **datos):
     """Ejecuta un alta. Rechazos de negocio -> 422 (con parecidos); BD caida -> 503."""
@@ -251,9 +265,9 @@ def nuevo_alias(a: NuevoAlias):
 
 # ---------- Confirmacion del tendero (guardado de C) ----------
 class Confirmacion(BaseModel):
-    movimientos: list[MovimientoConfirmado]
-    archivo: Optional[str] = None
-    simular: bool = True   # por defecto NO guarda: la tabla es inmutable
+    movimientos: list[MovimientoConfirmado] = Field(max_length=200)
+    archivo: Optional[str] = Field(default=None, max_length=200)
+    simular: bool = True
 
 
 @app.post("/api/confirmar")

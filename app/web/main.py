@@ -1,16 +1,16 @@
 import pathlib
 import os
 import time
-from typing import Optional
+from datetime import date
+from typing import Literal, Optional
 
 import psycopg
-from fastapi import Depends, FastAPI, File, HTTPException, UploadFile
-from .seguridad import cabeceras_seguras, limitar_extracciones, tipo_real_imagen, verificar_clave
+from fastapi import FastAPI, File, HTTPException, Query, UploadFile
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ValidationError
-from pydantic import BaseModel, Field, ValidationError
 
+from app import consultas
 from app.catalogo import RegistroInvalido, agregar_alias, crear_cliente, crear_producto
 from app.db import get_conn
 from app.herramientas import resolver_cliente, resolver_producto
@@ -22,16 +22,7 @@ from app.ia import FalloProveedor, obtener_proveedor
 from app.ia.presupuesto import Presupuesto
 from .schemas import validar_hoja
 
-EN_PRODUCCION = os.getenv("ENTORNO") == "produccion"
-
-app = FastAPI(
-    title="Libreta de Fiados Inteligente (prueba)",
-    dependencies=[Depends(verificar_clave)],   # protege TODAS las rutas /api
-    docs_url=None if EN_PRODUCCION else "/docs",
-    redoc_url=None,
-    openapi_url=None if EN_PRODUCCION else "/openapi.json",
-)
-app.middleware("http")(cabeceras_seguras)
+app = FastAPI(title="Libreta de Fiados Inteligente (prueba)")
 
 TIPOS_PERMITIDOS = {"image/jpeg", "image/png"}
 MAX_BYTES = 5 * 1024 * 1024  # 5 MB: fotos mas pesadas suelen causar timeouts
@@ -145,7 +136,7 @@ def leer_hoja(img: bytes, mime: str, proveedor=None, trazas: list | None = None)
     )
 
 
-@app.post("/api/extraer", dependencies=[Depends(limitar_extracciones)])
+@app.post("/api/extraer")
 def extraer(foto: UploadFile = File(...)):
     if foto.content_type not in TIPOS_PERMITIDOS:
         raise HTTPException(status_code=400, detail="Sube una imagen JPG o PNG.")
@@ -157,14 +148,11 @@ def extraer(foto: UploadFile = File(...)):
             status_code=413,
             detail=f"La foto pesa más de {MAX_BYTES // (1024 * 1024)} MB. Sube una más liviana.",
         )
-    mime = tipo_real_imagen(img)
-    if mime is None:
-        raise HTTPException(status_code=400, detail="El archivo no es una imagen JPG o PNG válida.")
 
     trazas: list[dict] = []   # las llena leer_hoja (agente e intentos invalidos)
     t0 = time.perf_counter()
     try:
-        hoja, intentos = leer_hoja(img, mime, trazas=trazas)
+        hoja, intentos = leer_hoja(img, foto.content_type, trazas=trazas)
     except HTTPException as e:
         # El fallo tambien deja traza: la pantalla la muestra aunque no haya hoja que revisar
         trazas.insert(0, {
@@ -210,22 +198,22 @@ def catalogo():
 
 # ---------- Altas por decision del tendero (app/catalogo.py) ----------
 class NuevoCliente(BaseModel):
-    nombre: str = Field(max_length=120)
-    telefono: Optional[str] = Field(default=None, max_length=30)
-    alias: list[str] = Field(default=[], max_length=10)
+    nombre: str
+    telefono: Optional[str] = None
+    alias: list[str] = []
     confirmar_duplicado: bool = False
 
 
 class NuevoProducto(BaseModel):
-    nombre: str = Field(max_length=120)
-    precio_ref: float = Field(le=10_000_000)
+    nombre: str
+    precio_ref: float
     confirmar_duplicado: bool = False
 
 
 class NuevoAlias(BaseModel):
     cliente_id: int
-    alias: str = Field(max_length=60)
-    
+    alias: str
+
 
 def _alta(funcion, **datos):
     """Ejecuta un alta. Rechazos de negocio -> 422 (con parecidos); BD caida -> 503."""
@@ -265,9 +253,9 @@ def nuevo_alias(a: NuevoAlias):
 
 # ---------- Confirmacion del tendero (guardado de C) ----------
 class Confirmacion(BaseModel):
-    movimientos: list[MovimientoConfirmado] = Field(max_length=200)
-    archivo: Optional[str] = Field(default=None, max_length=200)
-    simular: bool = True
+    movimientos: list[MovimientoConfirmado]
+    archivo: Optional[str] = None
+    simular: bool = True   # por defecto NO guarda: la tabla es inmutable
 
 
 @app.post("/api/confirmar")
@@ -307,6 +295,50 @@ def confirmar(c: Confirmacion):
         )
 
     return {"guardado": not c.simular, "resultados": resultados}
+
+
+# ---------- Consultas (solo lectura, app/consultas.py) ----------
+def _leer(funcion, *args, **kw):
+    try:
+        return funcion(*args, **kw)
+    except psycopg.OperationalError as e:
+        print("La BD no respondio en una consulta:", e)
+        raise HTTPException(status_code=503, detail="La base de datos no responde.")
+
+
+@app.get("/api/consultas/deudores")
+def api_deudores(todos: bool = False):
+    return _leer(consultas.deudores, solo_con_deuda=not todos)
+
+
+@app.get("/api/consultas/cliente/{cliente_id}")
+def api_cliente(cliente_id: int):
+    d = _leer(consultas.detalle_cliente, cliente_id)
+    if d is None:
+        raise HTTPException(status_code=404, detail="Ese cliente no existe.")
+    return d
+
+
+@app.get("/api/consultas/movimientos")
+def api_movimientos(
+    cliente_id: Optional[int] = None,
+    tipo: Optional[Literal["venta", "fiado", "abono"]] = None,
+    desde: Optional[date] = None,
+    hasta: Optional[date] = None,
+    limite: int = Query(50, ge=1, le=500),
+):
+    return _leer(consultas.movimientos, cliente_id, tipo, desde, hasta, limite)
+
+
+@app.get("/api/consultas/resumen")
+def api_resumen(desde: Optional[date] = None, hasta: Optional[date] = None):
+    return _leer(consultas.resumen, desde, hasta)
+
+
+@app.get("/api/consultas/productos")
+def api_productos(desde: Optional[date] = None, hasta: Optional[date] = None,
+                  limite: int = Query(10, ge=1, le=100)):
+    return _leer(consultas.productos_mas_vendidos, desde, hasta, limite)
 
 
 # El frontend se sirve desde el mismo servidor.

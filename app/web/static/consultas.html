@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Consultas - Libreta de Fiados</title>
+<style>
+  body{font-family:system-ui,sans-serif;max-width:720px;margin:2rem auto;padding:0 1rem;color:#222}
+  h1{font-family:Georgia,serif;text-align:center;color:#1f4e4a;margin:1.5rem 0}
+  nav{text-align:center;margin-bottom:1rem}
+  .tabs{display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:1rem}
+  button{padding:.5rem 1rem;font-size:1rem;cursor:pointer;border:1px solid #bbb;background:#eee;border-radius:6px}
+  button.on{background:#1f4e4a;color:#fff;border-color:#1f4e4a}
+  .filtros{display:flex;gap:.6rem;flex-wrap:wrap;align-items:end;margin-bottom:1rem}
+  label{font-size:.85rem;display:flex;flex-direction:column;gap:.2rem}
+  select,input{padding:.4rem;font-size:1rem}
+  table{width:100%;border-collapse:collapse}
+  th,td{text-align:left;padding:.45rem .3rem;border-bottom:1px solid #ddd;vertical-align:top}
+  td.n,th.n{text-align:right;white-space:nowrap}
+  .deuda{color:#b00020;font-weight:600}.ok{color:#1b7a3d}
+  .tarjetas{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:.6rem;margin:1rem 0}
+  .t{border:1px solid #ddd;border-radius:8px;padding:.7rem}.t b{display:block;font-size:1.3rem}
+  .items{font-size:.85rem;color:#555}
+  #msg{color:#b00020;min-height:1.4rem}
+  a.fila{cursor:pointer;color:#1d4f91;text-decoration:underline}
+</style>
+</head>
+<body>
+<h1>Consultas</h1>
+<nav><a href="/">← Volver a subir hojas</a></nav>
+<div class="tabs" id="tabs">
+  <button data-v="deudores" class="on">Quién debe</button>
+  <button data-v="movimientos">Movimientos</button>
+  <button data-v="resumen">Resumen</button>
+  <button data-v="productos">Productos</button>
+</div>
+<div class="filtros" id="filtros"></div>
+<div id="msg" aria-live="polite"></div>
+<div id="out"></div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const $$ = (s) => [...document.querySelectorAll(s)];
+const money = (n) => new Intl.NumberFormat("es-CO",{style:"currency",currency:"COP",maximumFractionDigits:0}).format(n);
+const esc = (t) => String(t ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+let vista = "deudores", clientes = [];
+
+async function api(url){
+  $("msg").textContent = "";
+  try{
+    const r = await fetch(url);
+    const d = await r.json();
+    if(!r.ok) throw new Error(typeof d.detail === "string" ? d.detail : "Error en la consulta.");
+    return d;
+  }catch(e){ $("msg").textContent = e.message; return null; }
+}
+const qs = (o) => new URLSearchParams(Object.entries(o).filter(([,v]) => v !== "" && v != null)).toString();
+const val = (id) => $(id) ? $(id).value : "";
+
+function fechas(){ return `<label>Desde<input type="date" id="desde"></label><label>Hasta<input type="date" id="hasta"></label>`; }
+function btn(){ return `<button id="ir">Consultar</button>`; }
+
+function pintarFiltros(){
+  const f = $("filtros");
+  if(vista==="deudores") f.innerHTML = `<label><span>Incluir clientes sin deuda</span><input type="checkbox" id="todos"></label>`+btn();
+  if(vista==="movimientos") f.innerHTML = `
+    <label>Cliente<select id="cliente"><option value="">Todos</option>${clientes.map(c=>`<option value="${c.id}">${esc(c.nombre)}</option>`).join("")}</select></label>
+    <label>Tipo<select id="tipo"><option value="">Todos</option><option value="venta">Venta</option><option value="fiado">Fiado</option><option value="abono">Abono</option></select></label>`+fechas()+btn();
+  if(vista==="resumen"||vista==="productos") f.innerHTML = fechas()+btn();
+  $("ir").onclick = consultar;
+}
+
+async function consultar(){
+  $("out").innerHTML = "";
+  if(vista==="deudores"){
+    const d = await api("/api/consultas/deudores?"+qs({todos: $("todos").checked}));
+    if(!d) return;
+    const total = d.reduce((a,x)=>a+x.saldo,0);
+    $("out").innerHTML = `<div class="tarjetas"><div class="t">Deuda total<b class="deuda">${money(total)}</b></div><div class="t">Clientes<b>${d.length}</b></div></div>`+
+      (d.length ? `<table><tr><th>Cliente</th><th class="n">Saldo</th></tr>${d.map(x=>`<tr><td><a class="fila" data-id="${x.cliente_id}">${esc(x.nombre)}</a></td><td class="n ${x.saldo>0?"deuda":"ok"}">${money(x.saldo)}</td></tr>`).join("")}</table>` : "<p>Nadie debe nada.</p>");
+    $$("a.fila").forEach(a => a.onclick = () => verCliente(a.dataset.id));
+  }
+  if(vista==="movimientos"){
+    const d = await api("/api/consultas/movimientos?"+qs({cliente_id:val("cliente"),tipo:val("tipo"),desde:val("desde"),hasta:val("hasta")}));
+    if(d) $("out").innerHTML = tablaMov(d);
+  }
+  if(vista==="resumen"){
+    const d = await api("/api/consultas/resumen?"+qs({desde:val("desde"),hasta:val("hasta")}));
+    if(!d) return;
+    const p = d.por_tipo, nom = {venta:"Ventas de contado",fiado:"Fiados",abono:"Abonos"};
+    $("out").innerHTML = `<div class="tarjetas">${["venta","fiado","abono"].map(k=>`<div class="t">${nom[k]} (${p[k].cantidad})<b>${money(p[k].total)}</b></div>`).join("")}<div class="t">Deuda total hoy<b class="deuda">${money(d.deuda_total_actual)}</b></div></div>`;
+  }
+  if(vista==="productos"){
+    const d = await api("/api/consultas/productos?"+qs({desde:val("desde"),hasta:val("hasta")}));
+    if(d) $("out").innerHTML = d.length ? `<table><tr><th>Producto</th><th class="n">Unidades</th><th class="n">Total</th></tr>${d.map(x=>`<tr><td>${esc(x.nombre)}</td><td class="n">${x.unidades}</td><td class="n">${money(x.total)}</td></tr>`).join("")}</table>` : "<p>Sin ventas con productos en ese rango.</p>";
+  }
+}
+
+function tablaMov(d){
+  if(!d.length) return "<p>No hay movimientos con esos filtros.</p>";
+  return `<table><tr><th>Fecha</th><th>Cliente</th><th>Tipo</th><th class="n">Monto</th></tr>${d.map(m=>`<tr><td>${esc(m.fecha)}</td><td>${esc(m.cliente||"—")}<div class="items">${m.items.map(i=>`${i.cantidad} × ${esc(i.producto)}`).join(", ")}</div></td><td>${esc(m.tipo)}</td><td class="n">${money(m.monto)}</td></tr>`).join("")}</table>`;
+}
+
+async function verCliente(id){
+  const d = await api("/api/consultas/cliente/"+encodeURIComponent(id));
+  if(!d) return;
+  $("out").innerHTML = `<h3>${esc(d.nombre)}</h3><div class="tarjetas"><div class="t">Saldo<b class="${d.saldo>0?"deuda":"ok"}">${money(d.saldo)}</b></div><div class="t">Teléfono<b style="font-size:1rem">${esc(d.telefono||"—")}</b></div></div>`+tablaMov(d.movimientos);
+}
+
+$$("#tabs button").forEach(b => b.onclick = () => {
+  $$("#tabs button").forEach(x => x.classList.remove("on")); b.classList.add("on");
+  vista = b.dataset.v; pintarFiltros(); consultar();
+});
+(async()=>{ const c = await api("/api/catalogo"); clientes = c ? c.clientes : []; pintarFiltros(); consultar(); })();
+</script>
+</body>
+</html>

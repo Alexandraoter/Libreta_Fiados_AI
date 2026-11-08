@@ -1,14 +1,16 @@
 import pathlib
 import os
 import time
-from typing import Optional
+from datetime import date
+from typing import Literal, Optional
 
 import psycopg
-from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi import FastAPI, File, HTTPException, Query, UploadFile
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ValidationError
 
+from app import consultas
 from app.catalogo import RegistroInvalido, agregar_alias, crear_cliente, crear_producto
 from app.db import get_conn
 from app.herramientas import resolver_cliente, resolver_producto
@@ -293,6 +295,50 @@ def confirmar(c: Confirmacion):
         )
 
     return {"guardado": not c.simular, "resultados": resultados}
+
+
+# ---------- Consultas (solo lectura, app/consultas.py) ----------
+def _leer(funcion, *args, **kw):
+    try:
+        return funcion(*args, **kw)
+    except psycopg.OperationalError as e:
+        print("La BD no respondio en una consulta:", e)
+        raise HTTPException(status_code=503, detail="La base de datos no responde.")
+
+
+@app.get("/api/consultas/deudores")
+def api_deudores(todos: bool = False):
+    return _leer(consultas.deudores, solo_con_deuda=not todos)
+
+
+@app.get("/api/consultas/cliente/{cliente_id}")
+def api_cliente(cliente_id: int):
+    d = _leer(consultas.detalle_cliente, cliente_id)
+    if d is None:
+        raise HTTPException(status_code=404, detail="Ese cliente no existe.")
+    return d
+
+
+@app.get("/api/consultas/movimientos")
+def api_movimientos(
+    cliente_id: Optional[int] = None,
+    tipo: Optional[Literal["venta", "fiado", "abono"]] = None,
+    desde: Optional[date] = None,
+    hasta: Optional[date] = None,
+    limite: int = Query(50, ge=1, le=500),
+):
+    return _leer(consultas.movimientos, cliente_id, tipo, desde, hasta, limite)
+
+
+@app.get("/api/consultas/resumen")
+def api_resumen(desde: Optional[date] = None, hasta: Optional[date] = None):
+    return _leer(consultas.resumen, desde, hasta)
+
+
+@app.get("/api/consultas/productos")
+def api_productos(desde: Optional[date] = None, hasta: Optional[date] = None,
+                  limite: int = Query(10, ge=1, le=100)):
+    return _leer(consultas.productos_mas_vendidos, desde, hasta, limite)
 
 
 # El frontend se sirve desde el mismo servidor.

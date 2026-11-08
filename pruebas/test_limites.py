@@ -11,7 +11,7 @@ from app.ia.presupuesto import Presupuesto
 from app.web import main
 from app.web.main import app, leer_hoja
 
-IMG, MIME = b"x", "image/jpeg"
+IMG, MIME = b"\xff\xd8\xffx", "image/jpeg"   # firma JPEG: la app ahora valida los bytes reales
 JSON_INVALIDO = ESCENARIOS["invalido"]
 
 

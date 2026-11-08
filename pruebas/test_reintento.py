@@ -6,7 +6,7 @@ from app.ia.falso import ESCENARIOS, ProveedorFalso
 from app.web.main import app, leer_hoja
 from app.web.schemas import validar_hoja
 
-IMG = b"x"
+IMG = b"\xff\xd8\xffx"   # firma JPEG: la app ahora valida los bytes reales
 MIME = "image/jpeg"
 
 

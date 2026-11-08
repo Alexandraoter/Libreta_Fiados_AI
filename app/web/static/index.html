@@ -3,469 +3,53 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <title>Libreta de Fiados Inteligente</title>
-    <style>
-        body {
-            font-family: system-ui, sans-serif;
-            max-width: 720px;
-            margin: 2rem auto;
-            padding: 0 1rem;
-            color: #222;
-        }
-
-        h1 {
-            font-family: Georgia, "Times New Roman", serif;
-            font-size: 2.1rem;
-            font-weight: 700;
-            text-align: center;
-            color: #1f4e4a;
-            margin: 2.2rem 0 1.6rem;
-            letter-spacing: .01em;
-        }
-
-        .hidden {
-            display: none;
-        }
-
-        button {
-            padding: .6rem 1.2rem;
-            font-size: 1rem;
-            cursor: pointer;
-            margin-right: .5rem;
-        }
-
-        button.sec {
-            background: #eee;
-            border: 1px solid #bbb;
-        }
-
-        button.mini {
-            padding: .2rem .6rem;
-            font-size: .85rem;
-        }
-
-        button:disabled {
-            opacity: .5;
-            cursor: not-allowed;
-        }
-
-        button:focus-visible,
-        select:focus-visible,
-        input:focus-visible,
-        summary:focus-visible {
-            outline: 3px solid #1d4f91;
-            outline-offset: 2px;
-        }
-
-        #preview {
-            max-width: 100%;
-            max-height: 220px;
-            margin: 1rem 0;
-            display: none;
-            border-radius: 8px;
-        }
-
-        .mov {
-            border: 1px solid #ccc;
-            border-left: 6px solid #2e9e4f;
-            border-radius: 8px;
-            padding: .8rem 1rem;
-            margin: .8rem 0;
-        }
-
-        .mov.revisar {
-            border-left-color: #d98a00;
-            background: #fff8e8;
-        }
-
-        .mov.descartado {
-            opacity: .45;
-        }
-
-        .cab {
-            font-style: italic;
-            color: #555;
-            display: block;
-            margin-bottom: .5rem;
-        }
-
-        .fila {
-            display: flex;
-            flex-wrap: wrap;
-            gap: .5rem;
-            align-items: center;
-            margin: .4rem 0;
-        }
-
-        .fila label {
-            font-size: .85rem;
-            color: #555;
-        }
-
-        select,
-        input[type=number] {
-            padding: .3rem;
-            font-size: .95rem;
-        }
-
-        input[type=number] {
-            width: 6.5rem;
-        }
-
-        .item {
-            background: #fafafa;
-            border: 1px solid #e3e3e3;
-            border-radius: 6px;
-            padding: .4rem .6rem;
-        }
-
-        .suma {
-            font-size: .9rem;
-            color: #555;
-        }
-
-        .estado-mov {
-            font-size: .9rem;
-            margin-top: .4rem;
-            font-weight: 600;
-        }
-
-        .estado-mov.bien {
-            color: #176b34;
-        }
-
-        .estado-mov.mal {
-            color: #a11;
-        }
-
-        .estado-mov.neutro {
-            color: #777;
-        }
-
-        .aviso {
-            color: #777;
-            margin: .3rem 0 0;
-            font-size: .85rem;
-            display: block;
-        }
-
-        .linea {
-            color: #555;
-            font-size: .9rem;
-            margin-top: .2rem;
-        }
-
-        .error {
-            background: #fdecec;
-            color: #a11;
-            padding: .8rem 1rem;
-            border-radius: 8px;
-            margin-top: 1rem;
-        }
-
-        .error ul {
-            margin: .4rem 0 0 1.2rem;
-            padding: 0;
-        }
-
-        .ok {
-            background: #eaf7ee;
-            color: #176b34;
-            padding: .8rem 1rem;
-            border-radius: 8px;
-            margin: 1rem 0;
-        }
-
-        .prueba {
-            background: #eef3fb;
-            color: #1d4f91;
-            padding: .8rem 1rem;
-            border-radius: 8px;
-            margin: 1rem 0;
-        }
-
-        .espera {
-            background: #eef3fb;
-            color: #1d4f91;
-            padding: .8rem 1rem;
-            border-radius: 8px;
-            margin-top: 1rem;
-        }
-
-        .totales {
-            background: #f4f4f4;
-            border-radius: 8px;
-            padding: .6rem 1rem;
-            margin: .8rem 0;
-            font-size: .95rem;
-        }
-
-        #barra {
-            position: sticky;
-            bottom: 0;
-            background: #fff;
-            border-top: 1px solid #ddd;
-            padding: .8rem 0;
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-        }
-
-        .pasos {
-            font-weight: 600;
-        }
-
-        /* ---------- Pantalla 1: subir foto ---------- */
-        #paso-subir:not(.hidden) {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 1.4rem;
-            max-width: 520px;
-            margin: 0 auto 2rem;
-            padding: 2rem 1.75rem 2.2rem;
-            background: #f4f9f8;
-            border: 1px solid #d3e4e1;
-            border-radius: 16px;
-            text-align: center;
-        }
-
-        #paso-subir .pasos {
-            margin: 0;
-            font-size: 1.05rem;
-            color: #2b3f3d;
-        }
-
-        .zona-subida {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: .35rem;
-            width: 100%;
-            box-sizing: border-box;
-            padding: 2rem 1rem;
-            background: #fff;
-            border: 2px dashed #8fb8b3;
-            border-radius: 14px;
-            cursor: pointer;
-            transition: background .15s, border-color .15s;
-        }
-
-        .zona-subida:hover,
-        .zona-subida:focus-within {
-            background: #eaf4f2;
-            border-color: #1f4e4a;
-        }
-
-        .zona-subida:focus-within {
-            outline: 3px solid #1d4f91;
-            outline-offset: 2px;
-        }
-
-        .zona-subida svg {
-            width: 56px;
-            height: 56px;
-            margin-bottom: .4rem;
-        }
-
-        .zona-subida .titulo-zona {
-            font-weight: 600;
-            font-size: 1.05rem;
-            color: #1f4e4a;
-        }
-
-        .zona-subida .ayuda-zona {
-            font-size: .88rem;
-            color: #5b6f6d;
-        }
-
-        /* El input real queda oculto pero sigue siendo accesible con teclado */
-        #archivo {
-            position: absolute;
-            width: 1px;
-            height: 1px;
-            opacity: 0;
-            overflow: hidden;
-        }
-
-        #nombre-archivo {
-            font-size: .9rem;
-            font-weight: 600;
-            color: #2b3f3d;
-            word-break: break-all;
-        }
-
-        #nombre-archivo:empty {
-            display: none;
-        }
-
-        #paso-subir #preview {
-            margin: 0;
-            max-height: 240px;
-            border: 1px solid #d3e4e1;
-            box-shadow: 0 4px 14px rgba(31, 78, 74, .12);
-        }
-
-        #paso-subir #enviar {
-            min-width: 220px;
-            margin: 0;
-            padding: .85rem 2rem;
-            font-size: 1.05rem;
-            font-weight: 600;
-            color: #fff;
-            background: #1f4e4a;
-            border: 0;
-            border-radius: 999px;
-            transition: background .15s;
-        }
-
-        #paso-subir #enviar:hover:not(:disabled) {
-            background: #163836;
-        }
-
-        #paso-subir #enviar:disabled {
-            background: #9db5b2;
-            opacity: 1;
-        }
-
-        /* Espacio reservado bajo el botón: aquí sale el aviso de que la IA está revisando la hoja */
-        #paso-subir #estado {
-            width: 100%;
-            min-height: 3.4rem;
-        }
-
-        #paso-subir .espera {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: .7rem;
-            margin-top: 0;
-            text-align: center;
-            background: #e3f0ee;
-            color: #1f4e4a;
-            border: 1px solid #cfe3e0;
-        }
-
-        #paso-subir .espera::before {
-            content: "";
-            flex: none;
-            width: 1.1rem;
-            height: 1.1rem;
-            border: 3px solid #9db5b2;
-            border-top-color: #1f4e4a;
-            border-radius: 50%;
-            animation: giro .9s linear infinite;
-        }
-
-        #paso-subir .error {
-            margin-top: 0;
-            text-align: left;
-        }
-
-        @keyframes giro {
-            to {
-                transform: rotate(360deg);
-            }
-        }
-
-        @media (prefers-reduced-motion: reduce) {
-            #paso-subir .espera::before {
-                animation: none;
-            }
-        }
-
-        /* Panel de trazas */
-        details#trazas {
-            margin: 1rem 0;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            padding: .5rem 1rem;
-            background: #fafafa;
-        }
-
-        details#trazas summary {
-            cursor: pointer;
-            font-weight: 600;
-        }
-
-        .traza {
-            font-family: ui-monospace, Consolas, monospace;
-            font-size: .8rem;
-            margin: .5rem 0;
-            color: #333;
-            word-break: break-word;
-        }
-
-        .traza .estado-ok,
-        .traza .estado-encontrado {
-            color: #176b34;
-            font-weight: 600;
-        }
-
-        .traza .estado-ambiguo {
-            color: #b36b00;
-            font-weight: 600;
-        }
-
-        .traza .estado-no_encontrado,
-        .traza .estado-error,
-        .traza .estado-invalido {
-            color: #a11;
-            font-weight: 600;
-        }
-
-        .traza .ms {
-            color: #777;
-        }
-
-        @media (max-width: 520px) {
-            body {
-                margin: 1rem auto;
-            }
-
-            .fila {
-                flex-direction: column;
-                align-items: stretch;
-            }
-
-            .fila select,
-            .fila input[type=number] {
-                width: 100%;
-                box-sizing: border-box;
-            }
-
-            #barra {
-                flex-direction: column;
-                align-items: stretch;
-                gap: .4rem;
-            }
-        }
-    </style>
+    <meta name="theme-color" content="#1e6fd9">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="Fiados">
+    <link rel="manifest" href="/manifest.json">
+    <link rel="icon" href="/icons/favicon.svg" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+    <link rel="stylesheet" href="/styles.css">
 </head>
 
 <body>
+    <div class="contenedor">
     <h1>Libreta de Fiados</h1>
-    <p style="text-align:center"><a href="/consultas.html">📊 Consultar la base de datos</a></p>
+    <p class="nav"><a class="pill" href="/consultas.html">🔍 Consultar Registros </a></p>
 
     <!-- Paso 1 -->
     <section id="paso-subir">
-        <p class="pasos">1. Sube una foto de la hoja</p>
-        <label class="zona-subida" for="archivo">
-            <svg viewBox="0 0 64 64" aria-hidden="true" fill="none" stroke="#1f4e4a" stroke-width="3"
-                stroke-linecap="round" stroke-linejoin="round">
-                <rect x="6" y="10" width="52" height="44" rx="7" fill="#e3f0ee" />
-                <circle cx="21" cy="25" r="5" fill="#e9a23b" stroke="#e9a23b" />
-                <path d="M6 46l15-14 11 10 9-8 17 15" />
-            </svg>
-            <span class="titulo-zona">Elige la foto de tu hoja</span>
-            <span class="ayuda-zona">JPG o PNG, hasta 5 MB</span>
-            <input type="file" id="archivo" accept="image/jpeg,image/png">
-            <span id="nombre-archivo"></span>
-        </label>
-        <img id="preview" alt="Vista previa de la foto">
-        <button id="enviar" disabled>Leer hoja</button>
-        <div id="estado" aria-live="polite"></div>
+        <div class="caja-amarilla">
+            <p class="pasos">1. Sube una foto de la hoja</p>
+            <label class="zona-subida" for="archivo">
+                <svg viewBox="0 0 64 64" aria-hidden="true" fill="none" stroke="#1f4e4a" stroke-width="3"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="6" y="10" width="52" height="44" rx="7" fill="#e3f0ee" />
+                    <circle cx="21" cy="25" r="5" fill="#e9a23b" stroke="#e9a23b" />
+                    <path d="M6 46l15-14 11 10 9-8 17 15" />
+                </svg>
+                <span class="titulo-zona">Elige la foto de tu hoja</span>
+                <span class="ayuda-zona">JPG o PNG, hasta 5 MB</span>
+                <input type="file" id="archivo" accept="image/jpeg,image/png">
+                <span id="nombre-archivo"></span>
+            </label>
+            <img id="preview" alt="Vista previa de la foto">
+            <button id="enviar" disabled>Leer hoja</button>
+            <div id="estado" aria-live="polite"></div>
+        </div>
+        <!-- Nombres de marcas como texto. Para usar los logos reales, reemplaza cada <li> por <li><img src="/marcas/archivo.svg" alt="Marca" height="36"></li> -->
+        <ul class="marcas" aria-label="Marcas frecuentes en las hojas">
+            <li class="marca m-alpina">Alpina</li>
+            <li class="marca m-cocacola">Coca-Cola</li>
+            <li class="marca m-diana">DIANA</li>
+            <li class="marca m-roa">Roa</li>
+            <li class="marca m-postobon">Postobón</li>
+            <li class="marca m-bavaria">Bavaria</li>
+            <li class="marca m-nestle">Nestlé</li>
+        </ul>
     </section>
 
     <!-- Paso 2 -->
@@ -503,6 +87,7 @@
         <summary>Trazas de la IA y las herramientas (<span id="n-trazas">0</span>)</summary>
         <div id="lista-trazas"></div>
     </details>
+    </div>
 
     <script>
         const $ = (id) => document.getElementById(id);
@@ -1039,6 +624,7 @@
             }
         });
     </script>
+    <script src="/pwa.js" defer></script>
 </body>
 
 </html>

@@ -2,41 +2,42 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Consultas - Libreta de Fiados</title>
-<style>
-  body{font-family:system-ui,sans-serif;max-width:720px;margin:2rem auto;padding:0 1rem;color:#222}
-  h1{font-family:Georgia,serif;text-align:center;color:#1f4e4a;margin:1.5rem 0}
-  nav{text-align:center;margin-bottom:1rem}
-  .tabs{display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:1rem}
-  button{padding:.5rem 1rem;font-size:1rem;cursor:pointer;border:1px solid #bbb;background:#eee;border-radius:6px}
-  button.on{background:#1f4e4a;color:#fff;border-color:#1f4e4a}
-  .filtros{display:flex;gap:.6rem;flex-wrap:wrap;align-items:end;margin-bottom:1rem}
-  label{font-size:.85rem;display:flex;flex-direction:column;gap:.2rem}
-  select,input{padding:.4rem;font-size:1rem}
-  table{width:100%;border-collapse:collapse}
-  th,td{text-align:left;padding:.45rem .3rem;border-bottom:1px solid #ddd;vertical-align:top}
-  td.n,th.n{text-align:right;white-space:nowrap}
-  .deuda{color:#b00020;font-weight:600}.ok{color:#1b7a3d}
-  .tarjetas{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:.6rem;margin:1rem 0}
-  .t{border:1px solid #ddd;border-radius:8px;padding:.7rem}.t b{display:block;font-size:1.3rem}
-  .items{font-size:.85rem;color:#555}
-  #msg{color:#b00020;min-height:1.4rem}
-  a.fila{cursor:pointer;color:#1d4f91;text-decoration:underline}
-</style>
+<meta name="theme-color" content="#1e6fd9">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Fiados">
+<link rel="manifest" href="/manifest.json">
+<link rel="icon" href="/icons/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<link rel="stylesheet" href="/styles.css">
 </head>
 <body>
+<div class="contenedor">
+<main class="panel panel-consultas">
 <h1>Consultas</h1>
-<nav><a href="/">← Volver a subir hojas</a></nav>
-<div class="tabs" id="tabs">
-  <button data-v="deudores" class="on">Quién debe</button>
-  <button data-v="movimientos">Movimientos</button>
-  <button data-v="resumen">Resumen</button>
-  <button data-v="productos">Productos</button>
+<p class="nav"><a class="pill volver" href="/">← Volver a subir hojas</a></p>
+<div class="tabs" id="tabs" role="tablist">
+  <button role="tab" aria-selected="true" data-v="deudores" class="on">Quién debe</button>
+  <button role="tab" aria-selected="false" data-v="movimientos">Movimientos</button>
+  <button role="tab" aria-selected="false" data-v="resumen">Resumen</button>
+  <button role="tab" aria-selected="false" data-v="productos">Productos</button>
 </div>
 <div class="filtros" id="filtros"></div>
 <div id="msg" aria-live="polite"></div>
 <div id="out"></div>
+<ul class="marcas" aria-label="Marcas frecuentes en las hojas">
+  <li class="marca m-alpina">Alpina</li>
+  <li class="marca m-cocacola">Coca-Cola</li>
+  <li class="marca m-diana">DIANA</li>
+  <li class="marca m-roa">Roa</li>
+  <li class="marca m-postobon">Postobón</li>
+  <li class="marca m-bavaria">Bavaria</li>
+  <li class="marca m-nestle">Nestlé</li>
+</ul>
+</main>
+</div>
 
 <script>
 const $ = (id) => document.getElementById(id);
@@ -44,6 +45,8 @@ const $$ = (s) => [...document.querySelectorAll(s)];
 const money = (n) => new Intl.NumberFormat("es-CO",{style:"currency",currency:"COP",maximumFractionDigits:0}).format(n);
 const esc = (t) => String(t ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 let vista = "deudores", clientes = [];
+const iniciales = (n) => String(n ?? "").trim().split(/\s+/).slice(0, 2).map(p => p[0] || "").join("").toUpperCase();
+const colorAvatar = (n) => { let h = 0; for (const c of String(n ?? "")) h = (h * 31 + c.charCodeAt(0)) % 360; return `hsl(${h} 55% 40%)`; };
 
 async function api(url){
   $("msg").textContent = "";
@@ -76,9 +79,9 @@ async function consultar(){
     const d = await api("/api/consultas/deudores?"+qs({todos: $("todos").checked}));
     if(!d) return;
     const total = d.reduce((a,x)=>a+x.saldo,0);
-    $("out").innerHTML = `<div class="tarjetas"><div class="t">Deuda total<b class="deuda">${money(total)}</b></div><div class="t">Clientes<b>${d.length}</b></div></div>`+
-      (d.length ? `<table><tr><th>Cliente</th><th class="n">Saldo</th></tr>${d.map(x=>`<tr><td><a class="fila" data-id="${x.cliente_id}">${esc(x.nombre)}</a></td><td class="n ${x.saldo>0?"deuda":"ok"}">${money(x.saldo)}</td></tr>`).join("")}</table>` : "<p>Nadie debe nada.</p>");
-    $$("a.fila").forEach(a => a.onclick = () => verCliente(a.dataset.id));
+    $("out").innerHTML = `<div class="tarjetas"><div class="t t-rojo">Deuda total<b class="deuda">${money(total)}</b></div><div class="t t-azul">Clientes<b>${d.length}</b></div></div>`+
+      (d.length ? `<table><tr><th>Cliente</th><th class="n">Saldo</th></tr>${d.map(x=>`<tr><td><div class="cli"><span class="avatar" aria-hidden="true" style="background:${colorAvatar(x.nombre)}">${esc(iniciales(x.nombre))}</span><a class="cli-link" href="#" data-id="${x.cliente_id}">${esc(x.nombre)}</a></div></td><td class="n ${x.saldo>0?"deuda":"ok-saldo"}">${money(x.saldo)}</td></tr>`).join("")}</table>` : "<p>Nadie debe nada.</p>");
+    $$("a.cli-link").forEach(a => a.onclick = (e) => { e.preventDefault(); verCliente(a.dataset.id); });
   }
   if(vista==="movimientos"){
     const d = await api("/api/consultas/movimientos?"+qs({cliente_id:val("cliente"),tipo:val("tipo"),desde:val("desde"),hasta:val("hasta")}));
@@ -87,8 +90,8 @@ async function consultar(){
   if(vista==="resumen"){
     const d = await api("/api/consultas/resumen?"+qs({desde:val("desde"),hasta:val("hasta")}));
     if(!d) return;
-    const p = d.por_tipo, nom = {venta:"Ventas de contado",fiado:"Fiados",abono:"Abonos"};
-    $("out").innerHTML = `<div class="tarjetas">${["venta","fiado","abono"].map(k=>`<div class="t">${nom[k]} (${p[k].cantidad})<b>${money(p[k].total)}</b></div>`).join("")}<div class="t">Deuda total hoy<b class="deuda">${money(d.deuda_total_actual)}</b></div></div>`;
+    const p = d.por_tipo, nom = {venta:"Ventas de contado",fiado:"Fiados",abono:"Abonos"}, col = {venta:"t-azul",fiado:"t-naranja",abono:"t-verde"};
+    $("out").innerHTML = `<div class="tarjetas">${["venta","fiado","abono"].map(k=>`<div class="t ${col[k]}">${nom[k]} (${p[k].cantidad})<b>${money(p[k].total)}</b></div>`).join("")}<div class="t t-rojo">Deuda total hoy<b class="deuda">${money(d.deuda_total_actual)}</b></div></div>`;
   }
   if(vista==="productos"){
     const d = await api("/api/consultas/productos?"+qs({desde:val("desde"),hasta:val("hasta")}));
@@ -104,14 +107,15 @@ function tablaMov(d){
 async function verCliente(id){
   const d = await api("/api/consultas/cliente/"+encodeURIComponent(id));
   if(!d) return;
-  $("out").innerHTML = `<h3>${esc(d.nombre)}</h3><div class="tarjetas"><div class="t">Saldo<b class="${d.saldo>0?"deuda":"ok"}">${money(d.saldo)}</b></div><div class="t">Teléfono<b style="font-size:1rem">${esc(d.telefono||"—")}</b></div></div>`+tablaMov(d.movimientos);
+  $("out").innerHTML = `<h3>${esc(d.nombre)}</h3><div class="tarjetas"><div class="t t-rojo">Saldo<b class="${d.saldo>0?"deuda":"ok-saldo"}">${money(d.saldo)}</b></div><div class="t t-azul">Teléfono<b style="font-size:1rem">${esc(d.telefono||"—")}</b></div></div>`+tablaMov(d.movimientos);
 }
 
 $$("#tabs button").forEach(b => b.onclick = () => {
-  $$("#tabs button").forEach(x => x.classList.remove("on")); b.classList.add("on");
+  $$("#tabs button").forEach(x => { x.classList.remove("on"); x.setAttribute("aria-selected", "false"); }); b.classList.add("on"); b.setAttribute("aria-selected", "true");
   vista = b.dataset.v; pintarFiltros(); consultar();
 });
 (async()=>{ const c = await api("/api/catalogo"); clientes = c ? c.clientes : []; pintarFiltros(); consultar(); })();
 </script>
+<script src="/pwa.js" defer></script>
 </body>
 </html>
